@@ -453,11 +453,11 @@ function renderHomeCharts() {
   const projects = getAllProjects(); // 获得该账号视角下的所有项目
   const statusBody = document.getElementById('chart-status-body');
   const priorityBody = document.getElementById('chart-priority-body');
-
+ 
   if (!statusBody || !priorityBody) return;
-
+ 
   const total = projects.length;
-
+ 
   if (total === 0) {
     const emptyHtml = `
       <div class="chart-empty">
@@ -468,7 +468,7 @@ function renderHomeCharts() {
     priorityBody.innerHTML = emptyHtml;
     return;
   }
-
+ 
   // 1. 状态分布环形图绘制
   const statusCounts = { backlog: 0, 'in-progress': 0, testing: 0, done: 0 };
   projects.forEach(p => {
@@ -476,20 +476,20 @@ function renderHomeCharts() {
       statusCounts[p.status]++;
     }
   });
-
+ 
   const bPct = (statusCounts.backlog / total) * 100;
   const ipPct = (statusCounts['in-progress'] / total) * 100;
   const tPct = (statusCounts.testing / total) * 100;
   const dPct = (statusCounts.done / total) * 100;
-
+ 
   // 转换成渐变角度
   const deg1 = bPct * 3.6;
   const deg2 = deg1 + ipPct * 3.6;
   const deg3 = deg2 + tPct * 3.6;
-
+ 
   // conic gradient 环形背景样式
   const conicStyle = `background: conic-gradient(var(--gray-400) 0deg ${deg1}deg, var(--blue) ${deg1}deg ${deg2}deg, var(--orange) ${deg2}deg ${deg3}deg, var(--green) ${deg3}deg 360deg)`;
-
+ 
   statusBody.innerHTML = `
     <div class="donut-wrapper">
       <div class="donut-circle" style="${conicStyle}">
@@ -498,26 +498,33 @@ function renderHomeCharts() {
           <span class="donut-center-label">总项目数</span>
         </div>
       </div>
-      <div class="chart-legend">
-        <div class="legend-item">
+      <div class="chart-legend" id="status-chart-legend">
+        <div class="legend-item" data-status="backlog">
           <div class="legend-left"><span class="legend-dot backlog"></span>待办</div>
           <div><span class="legend-count">${statusCounts.backlog}</span><span class="legend-pct">${bPct.toFixed(0)}%</span></div>
         </div>
-        <div class="legend-item">
+        <div class="legend-item" data-status="in-progress">
           <div class="legend-left"><span class="legend-dot in-progress"></span>进行中</div>
           <div><span class="legend-count">${statusCounts['in-progress']}</span><span class="legend-pct">${ipPct.toFixed(0)}%</span></div>
         </div>
-        <div class="legend-item">
+        <div class="legend-item" data-status="testing">
           <div class="legend-left"><span class="legend-dot testing"></span>测试中</div>
           <div><span class="legend-count">${statusCounts.testing}</span><span class="legend-pct">${tPct.toFixed(0)}%</span></div>
         </div>
-        <div class="legend-item">
+        <div class="legend-item" data-status="done">
           <div class="legend-left"><span class="legend-dot done"></span>已完成</div>
           <div><span class="legend-count">${statusCounts.done}</span><span class="legend-pct">${dPct.toFixed(0)}%</span></div>
         </div>
       </div>
+    </div>
+    <div class="chart-drilldown" id="status-chart-drilldown">
+      <div class="chart-drilldown-placeholder">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>悬停在上方分类上可穿透查看具体项目明细</span>
+      </div>
+      <div class="chart-drilldown-list" style="display: none;"></div>
     </div>`;
-
+ 
   // 2. 优先级条形图绘制
   const priCounts = { high: 0, medium: 0, low: 0 };
   projects.forEach(p => {
@@ -525,14 +532,14 @@ function renderHomeCharts() {
       priCounts[p.priority]++;
     }
   });
-
+ 
   const hPct = (priCounts.high / total) * 100;
   const mPct = (priCounts.medium / total) * 100;
   const lPct = (priCounts.low / total) * 100;
-
+ 
   priorityBody.innerHTML = `
-    <div class="priority-chart-wrapper">
-      <div class="priority-bar-row">
+    <div class="priority-chart-wrapper" id="priority-chart-wrapper">
+      <div class="priority-bar-row" data-priority="high">
         <div class="priority-bar-label">
           <div class="priority-bar-left"><span class="priority-dot high" style="width:6px; height:6px; border-radius:50%; background:var(--red)"></span>🔴 紧急</div>
           <div><strong>${priCounts.high}</strong> 个项目 <span style="font-size:.7rem; color:var(--text-muted); font-weight:500;">(${hPct.toFixed(0)}%)</span></div>
@@ -541,7 +548,7 @@ function renderHomeCharts() {
           <div class="priority-bar-fill high" style="width: ${hPct}%"></div>
         </div>
       </div>
-      <div class="priority-bar-row">
+      <div class="priority-bar-row" data-priority="medium">
         <div class="priority-bar-label">
           <div class="priority-bar-left"><span class="priority-dot medium" style="width:6px; height:6px; border-radius:50%; background:var(--orange)"></span>🟡 重要</div>
           <div><strong>${priCounts.medium}</strong> 个项目 <span style="font-size:.7rem; color:var(--text-muted); font-weight:500;">(${mPct.toFixed(0)}%)</span></div>
@@ -550,7 +557,7 @@ function renderHomeCharts() {
           <div class="priority-bar-fill medium" style="width: ${mPct}%"></div>
         </div>
       </div>
-      <div class="priority-bar-row">
+      <div class="priority-bar-row" data-priority="low">
         <div class="priority-bar-label">
           <div class="priority-bar-left"><span class="priority-dot low" style="width:6px; height:6px; border-radius:50%; background:var(--green)"></span>🟢 普通</div>
           <div><strong>${priCounts.low}</strong> 个项目 <span style="font-size:.7rem; color:var(--text-muted); font-weight:500;">(${lPct.toFixed(0)}%)</span></div>
@@ -559,7 +566,94 @@ function renderHomeCharts() {
           <div class="priority-bar-fill low" style="width: ${lPct}%"></div>
         </div>
       </div>
+    </div>
+    <div class="chart-drilldown" id="priority-chart-drilldown">
+      <div class="chart-drilldown-placeholder">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>悬停在上方分类上可穿透查看具体项目明细</span>
+      </div>
+      <div class="chart-drilldown-list" style="display: none;"></div>
     </div>`;
+
+  // ---- 绑定状态分布图悬停事件 ----
+  const statusDrilldown = document.getElementById('status-chart-drilldown');
+  const statusPlaceholder = statusDrilldown.querySelector('.chart-drilldown-placeholder');
+  const statusList = statusDrilldown.querySelector('.chart-drilldown-list');
+  let statusTimer = null;
+
+  document.querySelectorAll('#status-chart-legend .legend-item').forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      if (statusTimer) clearTimeout(statusTimer);
+      const statusKey = item.dataset.status;
+      const matched = projects.filter(p => p.status === statusKey);
+      
+      statusPlaceholder.style.display = 'none';
+      statusList.style.display = 'flex';
+      
+      if (matched.length === 0) {
+        statusList.innerHTML = `<div class="chart-drilldown-placeholder" style="animation:none; font-size:0.72rem;">暂无该状态下的项目</div>`;
+      } else {
+        statusList.innerHTML = matched.map(p => {
+          const progress = getProjectProgress(p);
+          return `
+            <div class="chart-drilldown-item">
+              <span class="drilldown-title" title="${esc(p.title)}">${esc(p.title)}</span>
+              <div class="drilldown-meta">
+                <span class="drilldown-owner">👤 ${esc(p.assignee || '未分配')}</span>
+                <span class="drilldown-pct">${progress}%</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    });
+
+    item.addEventListener('mouseleave', () => {
+      statusTimer = setTimeout(() => {
+        statusPlaceholder.style.display = 'flex';
+        statusList.style.display = 'none';
+      }, 350);
+    });
+  });
+
+  // ---- 绑定优先级分布图悬停事件 ----
+  const priorityDrilldown = document.getElementById('priority-chart-drilldown');
+  const priorityPlaceholder = priorityDrilldown.querySelector('.chart-drilldown-placeholder');
+  const priorityList = priorityDrilldown.querySelector('.chart-drilldown-list');
+  let priorityTimer = null;
+
+  document.querySelectorAll('#priority-chart-wrapper .priority-bar-row').forEach(row => {
+    row.addEventListener('mouseenter', () => {
+      if (priorityTimer) clearTimeout(priorityTimer);
+      const priKey = row.dataset.priority;
+      const matched = projects.filter(p => p.priority === priKey);
+      
+      priorityPlaceholder.style.display = 'none';
+      priorityList.style.display = 'flex';
+      
+      if (matched.length === 0) {
+        priorityList.innerHTML = `<div class="chart-drilldown-placeholder" style="animation:none; font-size:0.72rem;">暂无该优先级下的项目</div>`;
+      } else {
+        priorityList.innerHTML = matched.map(p => {
+          const progress = getProjectProgress(p);
+          return `
+            <div class="chart-drilldown-item">
+              <span class="drilldown-title" title="${esc(p.title)}">${esc(p.title)}</span>
+              <div class="drilldown-meta">
+                <span class="drilldown-owner">👤 ${esc(p.assignee || '未分配')}</span>
+                <span class="drilldown-pct">${progress}%</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+    });
+
+    row.addEventListener('mouseleave', () => {
+      priorityTimer = setTimeout(() => {
+        priorityPlaceholder.style.display = 'flex';
+        priorityList.style.display = 'none';
+      }, 350);
+    });
+  });
 }
 
 

@@ -1622,3 +1622,102 @@ body{
 .staggered-row {
   opacity: 0;
 }
+
+/* ====================================================================
+   图形看板穿透查看项目明细专属样式 (v14)
+   ==================================================================== */
+.chart-drilldown {
+  margin-top: 16px;
+  border-top: 1px dashed var(--border);
+  padding-top: 14px;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.3s var(--ease);
+}
+
+.chart-drilldown-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  animation: fadeIn 0.4s var(--ease);
+}
+
+.chart-drilldown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+  animation: slideUpIn 0.35s var(--spring);
+}
+
+@keyframes slideUpIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chart-drilldown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-sm);
+  transition: all 0.2s var(--ease);
+}
+.chart-drilldown-item:hover {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  transform: translateX(3px);
+}
+
+.drilldown-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.drilldown-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.drilldown-owner {
+  font-weight: 600;
+  background: var(--bg-card);
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.drilldown-pct {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* hover 分类时的弹性立体高亮反馈 */
+.legend-item, .priority-bar-row {
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.legend-item:hover, .priority-bar-row:hover {
+  transform: scale(1.015) translateX(2px);
+  background-color: var(--bg-muted);
+  border-radius: var(--r-xs);
+}
