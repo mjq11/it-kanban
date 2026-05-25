@@ -1455,3 +1455,98 @@ body{
     padding: 12px;
   }
 }
+
+/* ====================================================================
+   维度二：整体维度看板免登录分享页面专属样式 (v12)
+   ==================================================================== */
+.share-board-pie {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s var(--ease);
+}
+.share-board-pie:hover {
+  transform: scale(1.03);
+  box-shadow: var(--shadow-lg);
+}
+
+.sb-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font-size: 0.8rem;
+  border: 1px solid transparent;
+}
+.sb-legend-item:hover {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-light);
+}
+.sb-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+.sb-legend-left {
+  display: flex;
+  align-items: center;
+}
+.sb-legend-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.sb-legend-count {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+  background: var(--bg-muted);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* 大屏只读详情侧滑面板动效与遮罩 */
+.share-board-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  z-index: 149;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--dur-slow);
+}
+.share-board-detail-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+#sb-detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 150;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  transform: translateX(100%);
+  transition: transform var(--dur-slow) var(--spring);
+}
+#sb-detail-panel.open {
+  transform: translateX(0);
+}
+
+/* 只读大表单行悬浮高亮反馈 */
+#share-board-table-body tr {
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+#share-board-table-body tr:hover {
+  background-color: var(--bg-muted);
+}

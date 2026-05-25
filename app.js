@@ -229,6 +229,9 @@ function bindEvents() {
   document.getElementById('pn-btn-close').addEventListener('click', closePanel);
   document.getElementById('panel-backdrop').addEventListener('click', closePanel);
   document.getElementById('pn-btn-share').addEventListener('click', () => { if(activeProjId) shareProjectProgress(activeProjId); });
+  document.getElementById('btn-share-all-board').addEventListener('click', () => shareAllBoardProgress());
+  document.getElementById('sb-pn-btn-close').addEventListener('click', closeShareBoardDetail);
+  document.getElementById('sb-detail-backdrop').addEventListener('click', closeShareBoardDetail);
   document.getElementById('pn-btn-edit').addEventListener('click', () => { if(activeProjId){ const pid = activeProjId; closePanel(); setTimeout(()=>openProjModal(pid),250); } });
   document.getElementById('pn-btn-del').addEventListener('click', () => { if(activeProjId) showConfirm('确认删除','此操作不可撤销，确定要删除该项目吗？',()=>{ deleteProject(activeProjId); closePanel(); }); });
   document.getElementById('pn-status-sel').addEventListener('change', e => {
@@ -1664,6 +1667,10 @@ function checkAuthAndRender() {
     renderShareView();
     return;
   }
+  if (urlParams.has('shareBoard')) {
+    renderShareBoardView();
+    return;
+  }
 
   const loginOverlay = document.getElementById('login-overlay');
   const userProfile = document.getElementById('user-profile');
@@ -2123,4 +2130,353 @@ function renderShareView() {
   document.getElementById('share-btn-go-home').addEventListener('click', () => {
     window.location.href = window.location.origin + window.location.pathname;
   });
+}
+
+// ==========================================
+// 维度二：整体项目看板外链免登录分享逻辑
+// ==========================================
+let sharedBoardProjects = []; // 缓存整体项目报告集以实现免登录只读下钻查阅
+
+function shareAllBoardProgress() {
+  const allProj = [];
+  const user = state.currentUser;
+  if (!user) {
+    toast('请先登录系统！');
+    return;
+  }
+  
+  state.boards.forEach(b => {
+    b.projects.forEach(p => {
+      const allowed = user.allowedAssignees || [];
+      if (user.role === 'admin' || p.assignee === user.name || allowed.includes(p.assignee)) {
+        // 精减信息并剥离 base64 附件，防止 URL 超出 8KB 安全限制
+        allProj.push({
+          id: p.id,
+          title: p.title,
+          desc: p.desc || '',
+          priority: p.priority,
+          status: p.status,
+          assignee: p.assignee || '未分配',
+          deadline: p.deadline || '',
+          boardName: b.name,
+          boardColor: b.color,
+          manualProgress: p.manualProgress || 0,
+          subtasks: (p.subtasks || []).map(s => ({ text: s.text, done: s.done })),
+          logs: (p.logs || []).slice(0, 5).map(l => ({ text: l.text, time: l.time }))
+        });
+      }
+    });
+  });
+
+  if (allProj.length === 0) {
+    toast('当前账号下暂无可分享的项目进度！');
+    return;
+  }
+
+  const shareData = {
+    ownerName: user.realname || user.name,
+    projects: allProj,
+    sharedAt: new Date().toISOString()
+  };
+
+  const base64Str = encodeShareData(shareData);
+  if (!base64Str) {
+    toast('生成整体看板分享失败！');
+    return;
+  }
+
+  // 组装整体看板分享 URL (对 Base64 串进行了 encodeURIComponent 转义保护)
+  const shareUrl = `${window.location.origin}${window.location.pathname}?shareBoard=${encodeURIComponent(base64Str)}`;
+
+  // 写入剪贴板
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    toast('🔗 该账号下所有项目进度已生成整体汇总看板并复制到剪贴板，他人免登录即可访问！');
+  }).catch(err => {
+    console.error('Could not copy text: ', err);
+    prompt('汇总看板链接生成成功，请手动复制：', shareUrl);
+  });
+}
+
+function renderShareBoardView() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const base64Str = urlParams.get('shareBoard');
+  if (!base64Str) return;
+
+  // 彻底隐藏无关的大容器，激活整体看板分享页面
+  document.getElementById('view-share-board').style.display = 'flex';
+  document.getElementById('view-share').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('view-home').style.display = 'none';
+  document.getElementById('view-board').style.display = 'none';
+
+  // 关闭主系统侧滑详情面板
+  const panel = document.getElementById('panel');
+  if (panel) panel.classList.remove('open');
+  const backdrop = document.getElementById('panel-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
+
+  const data = decodeShareData(base64Str);
+  if (!data || !data.projects) {
+    // 渲染解析失败错误画面
+    document.querySelector('#view-share-board .share-card').innerHTML = `
+      <div class="share-header" style="justify-content: center; background: var(--red-soft);">
+        <div class="share-logo" style="color: var(--red);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>整体报告加载失败</span>
+        </div>
+      </div>
+      <div class="share-body" style="text-align: center; padding: 48px 32px;">
+        <h2 style="color: var(--text);">整体看板分享链接已失效或数据已损坏</h2>
+        <p style="color: var(--text-secondary); max-width: 460px; margin: 12px auto 24px auto; font-size: 0.9rem; line-height: 1.6;">
+          可能由于数据过大或字符被修改损坏。请联系报告生成人重新复制分享链接。
+        </p>
+        <button class="btn btn-primary" id="share-board-btn-go-home-err">进入 IT项目管理系统</button>
+      </div>
+    `;
+    document.getElementById('share-board-btn-go-home-err').addEventListener('click', () => {
+      window.location.href = window.location.origin + window.location.pathname;
+    });
+    return;
+  }
+
+  // 缓存解密数据，供后续下钻查找
+  sharedBoardProjects = data.projects;
+
+  // 填充标题和更新时间
+  if (data.ownerName) {
+    document.querySelector('#view-share-board .share-logo span').textContent = `IT看板汇总进度报告 (${data.ownerName})`;
+  }
+  if (data.sharedAt) {
+    const d = new Date(data.sharedAt);
+    document.getElementById('share-board-time').textContent = `更新时间：${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // 1. 核算四大指标
+  const total = sharedBoardProjects.length;
+  const done = sharedBoardProjects.filter(p => p.status === 'done').length;
+  
+  const today = new Date(); today.setHours(0,0,0,0);
+  const overdue = sharedBoardProjects.filter(p => {
+    if (!p.deadline || p.status === 'done') return false;
+    const dl = new Date(p.deadline); dl.setHours(0,0,0,0);
+    return dl < today;
+  }).length;
+  
+  const inProgress = sharedBoardProjects.filter(p => p.status === 'in-progress').length;
+
+  document.getElementById('sb-total').textContent = total;
+  document.getElementById('sb-progress').textContent = inProgress;
+  document.getElementById('sb-done').textContent = done;
+  document.getElementById('sb-overdue').textContent = overdue;
+
+  // 2. 统计状态并绘制纯 CSS 环形饼图
+  const statusCounts = { backlog: 0, 'in-progress': 0, testing: 0, done: 0, overdue: 0 };
+  sharedBoardProjects.forEach(p => {
+    if (p.deadline && p.status !== 'done' && new Date(p.deadline).setHours(0,0,0,0) < today) {
+      statusCounts.overdue++;
+    } else {
+      statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+    }
+  });
+
+  const chartStatusMap = {
+    'in-progress': { label: '进行中', color: 'var(--blue)' },
+    'done': { label: '已完成', color: 'var(--green)' },
+    'overdue': { label: '已逾期', color: 'var(--red)' },
+    'backlog': { label: '待办', color: 'var(--gray-400)' },
+    'testing': { label: '测试中', color: 'var(--orange)' }
+  };
+
+  let accumPct = 0;
+  const gradientParts = [];
+  const statusArr = Object.keys(statusCounts).map(key => ({
+    key,
+    count: statusCounts[key],
+    pct: total > 0 ? Math.round((statusCounts[key] / total) * 100) : 0
+  })).filter(item => item.count > 0);
+
+  statusArr.forEach(item => {
+    const start = accumPct;
+    accumPct += item.pct;
+    const color = chartStatusMap[item.key]?.color || 'var(--accent)';
+    gradientParts.push(`${color} ${start}% ${accumPct}%`);
+  });
+
+  const pieChartEl = document.getElementById('sb-pie-chart');
+  if (gradientParts.length > 0) {
+    // 强制补足 100% 避免圆环末端渐变缺失
+    if (accumPct < 100 && gradientParts.length > 0) {
+      gradientParts[gradientParts.length - 1] = gradientParts[gradientParts.length - 1].replace(/%$/, ' 100%');
+    }
+    pieChartEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+  } else {
+    pieChartEl.style.background = 'var(--border)';
+  }
+
+  // 默认中央显示数量最多的状态百分比
+  if (statusArr.length > 0) {
+    statusArr.sort((a, b) => b.count - a.count);
+    document.getElementById('sb-pie-center-label').textContent = chartStatusMap[statusArr[0].key].label;
+    document.getElementById('sb-pie-center-pct').textContent = `${statusArr[0].pct}%`;
+  } else {
+    document.getElementById('sb-pie-center-label').textContent = '无数据';
+    document.getElementById('sb-pie-center-pct').textContent = '0%';
+  }
+
+  // 渲染大屏图例
+  const legendsEl = document.getElementById('sb-pie-legends');
+  legendsEl.innerHTML = Object.keys(chartStatusMap).map(key => {
+    const count = statusCounts[key] || 0;
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    if (count === 0) return '';
+    const info = chartStatusMap[key];
+    return `
+      <div class="sb-legend-item" data-key="${key}" data-label="${info.label}" data-pct="${pct}%">
+        <div class="sb-legend-left">
+          <span class="sb-legend-color" style="background: ${info.color}"></span>
+          <span class="sb-legend-name">${info.label}</span>
+        </div>
+        <span class="sb-legend-count">${count} 个 (${pct}%)</span>
+      </div>
+    `;
+  }).join('');
+
+  // 绑定图例鼠标悬停交互
+  legendsEl.querySelectorAll('.sb-legend-item').forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      document.getElementById('sb-pie-center-label').textContent = item.dataset.label;
+      document.getElementById('sb-pie-center-pct').textContent = item.dataset.pct;
+    });
+  });
+
+  // 3. 渲染项目概览大表格
+  const tbody = document.getElementById('share-board-table-body');
+  tbody.innerHTML = sharedBoardProjects.map(p => {
+    let pct = 0;
+    const totalSt = p.subtasks ? p.subtasks.length : 0;
+    if (totalSt > 0) {
+      const doneSt = p.subtasks.filter(s => s.done).length;
+      pct = Math.round((doneSt / totalSt) * 100);
+    } else {
+      pct = p.manualProgress || 0;
+    }
+
+    const dlInfo = getDeadlineInfo(p);
+    const boardColor = p.boardColor || 'var(--accent)';
+
+    return `
+      <tr data-pid="${p.id}">
+        <td style="padding: 12px 8px; font-weight:700;"><span class="tbl-title">${esc(p.title)}</span></td>
+        <td style="padding: 12px 8px;"><span class="tbl-board" style="background:${boardColor}; color:#fff; padding: 2px 8px; border-radius:10px; font-size:0.75rem;">📁 ${esc(p.boardName)}</span></td>
+        <td style="padding: 12px 8px;"><span class="tbl-status ${p.status}">${STATUS_MAP[p.status]}</span></td>
+        <td style="padding: 12px 8px;"><span class="tbl-priority"><span class="priority-dot ${p.priority}"></span>${PRIORITY_MAP[p.priority]}</span></td>
+        <td style="padding: 12px 8px; font-size:0.82rem;">${esc(p.assignee)}</td>
+        <td style="padding: 12px 8px;">
+          <div class="tbl-progress" style="display:flex; align-items:center; gap:8px;">
+            <div class="tbl-progress-bar" style="width:70px; height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
+              <div class="tbl-progress-fill ${pct===100?'complete':''}" style="width:${pct}%; height:100%; background:var(--accent); border-radius:3px;"></div>
+            </div>
+            <span class="tbl-progress-pct" style="font-size:0.78rem; font-weight:700;">${pct}%</span>
+          </div>
+        </td>
+        <td style="padding: 12px 8px;"><span class="tbl-deadline ${dlInfo.cls}">${dlInfo.text}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  // 绑定表格行的点击穿透详情下钻事件
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const pid = parseInt(tr.dataset.pid);
+      openShareBoardDetail(pid);
+    });
+  });
+
+  // 绑定返回主页一键流转
+  document.getElementById('share-board-btn-go-home').addEventListener('click', () => {
+    window.location.href = window.location.origin + window.location.pathname;
+  });
+}
+
+function openShareBoardDetail(projId) {
+  const proj = sharedBoardProjects.find(p => p.id === projId);
+  if (!proj) return;
+
+  document.getElementById('sb-pn-id').textContent = `#${proj.id}`;
+  const badge = document.getElementById('sb-pn-badge');
+  badge.textContent = PRIORITY_MAP[proj.priority];
+  badge.className = `pn-priority-badge ${proj.priority}`;
+  document.getElementById('sb-pn-title').textContent = proj.title;
+
+  const statusEl = document.getElementById('sb-pn-status');
+  statusEl.className = `tbl-status ${proj.status}`;
+  statusEl.textContent = STATUS_MAP[proj.status];
+
+  document.getElementById('sb-pn-desc').textContent = proj.desc || '暂无描述';
+
+  // 属性网格
+  document.getElementById('sb-pn-assignee').textContent = proj.assignee;
+  document.getElementById('sb-pn-board').textContent = proj.boardName;
+  document.getElementById('sb-pn-priority').textContent = `⚡ ${PRIORITY_MAP[proj.priority]}`;
+  document.getElementById('sb-pn-deadline').textContent = proj.deadline ? fmtDate(proj.deadline) : '未设置';
+
+  // 进度环形百分比
+  let pct = 0;
+  const totalSt = proj.subtasks ? proj.subtasks.length : 0;
+  if (totalSt > 0) {
+    const doneSt = proj.subtasks.filter(s => s.done).length;
+    pct = Math.round((doneSt / totalSt) * 100);
+  } else {
+    pct = proj.manualProgress || 0;
+  }
+
+  const r = 28, C = 2 * Math.PI * r, off = C - (pct / 100) * C;
+  const progressContainer = document.getElementById('sb-pn-progress-block');
+  progressContainer.innerHTML = `
+    <div class="pn-circle"><svg width="72" height="72" viewBox="0 0 72 72"><circle class="pn-circle-bg" cx="36" cy="36" r="${r}"/><circle class="pn-circle-fill ${pct===100?'complete':''}" cx="36" cy="36" r="${r}" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg><span class="pn-circle-text">${pct}%</span></div>
+    <div class="pn-progress-stats" style="flex-grow:1;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span class="pn-progress-stat-label" style="font-size:0.75rem; color:var(--text-secondary);">子项完成度</span><span class="pn-progress-stat-value hl" style="font-weight:700; color:var(--accent); font-size:0.75rem;">${totalSt > 0 ? proj.subtasks.filter(s=>s.done).length + ' / ' + totalSt : '无子任务'}</span></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span class="pn-progress-stat-label" style="font-size:0.75rem; color:var(--text-secondary);">状态</span><span class="pn-progress-stat-value" style="font-size:0.75rem;">${STATUS_MAP[proj.status]}</span></div>
+      <div style="display:flex; justify-content:space-between;"><span class="pn-progress-stat-label" style="font-size:0.75rem; color:var(--text-secondary);">截止日期</span><span class="pn-progress-stat-value" style="font-size:0.75rem;">${proj.deadline ? fmtDate(proj.deadline) : '未设置'}</span></div>
+    </div>
+  `;
+
+  // 只读子任务列表
+  const subtasksList = document.getElementById('sb-pn-subtasks-list');
+  const subtasksGroup = document.getElementById('sb-pn-subtasks-group');
+  if (totalSt > 0) {
+    subtasksGroup.style.display = 'flex';
+    subtasksList.innerHTML = proj.subtasks.map(s => `
+      <li class="share-list-item ${s.done ? 'done' : ''}" style="margin-bottom:8px;">
+        <span class="share-checkbox ${s.done ? 'checked' : ''}"></span>
+        <span style="font-size:0.8rem;">${esc(s.text)}</span>
+      </li>
+    `).join('');
+  } else {
+    subtasksGroup.style.display = 'none';
+  }
+
+  // 只读事件轴
+  const logsList = document.getElementById('sb-pn-logs-list');
+  const logsGroup = document.getElementById('sb-pn-logs-group');
+  if (proj.logs && proj.logs.length > 0) {
+    logsGroup.style.display = 'flex';
+    logsList.innerHTML = proj.logs.map(l => `
+      <div class="share-timeline-item" style="margin-bottom:12px;">
+        <span class="share-timeline-time" style="font-size:0.7rem; color:var(--text-muted); font-weight:600;">${l.time ? fmtTimeAgo(l.time) : '--'}</span>
+        <p class="share-timeline-text" style="font-size:0.78rem; color:var(--text-secondary); margin:2px 0 0 0;">${esc(l.text)}</p>
+      </div>
+    `).join('');
+  } else {
+    logsGroup.style.display = 'none';
+  }
+
+  document.getElementById('sb-detail-panel').classList.add('open');
+  document.getElementById('sb-detail-backdrop').classList.add('active');
+}
+
+function closeShareBoardDetail() {
+  document.getElementById('sb-detail-panel').classList.remove('open');
+  document.getElementById('sb-detail-backdrop').classList.remove('active');
 }
