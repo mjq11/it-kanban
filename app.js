@@ -575,10 +575,10 @@ function renderHomeStats() {
     return dl < today;
   }).length;
 
-  document.getElementById('sv-total').textContent = total;
-  document.getElementById('sv-progress').textContent = progress;
-  document.getElementById('sv-done').textContent = done;
-  document.getElementById('sv-overdue').textContent = overdue;
+  animateValue(document.getElementById('sv-total'), 0, total, 900);
+  animateValue(document.getElementById('sv-progress'), 0, progress, 900);
+  animateValue(document.getElementById('sv-done'), 0, done, 900);
+  animateValue(document.getElementById('sv-overdue'), 0, overdue, 900);
 }
 
 function renderBoardGrid() {
@@ -715,11 +715,11 @@ function renderProjectTable() {
   }
   empty.style.display = 'none';
 
-  tbody.innerHTML = filtered.map(p => {
+  tbody.innerHTML = filtered.map((p, idx) => {
     const pct = getProjectProgress(p);
     const dlInfo = getDeadlineInfo(p);
     return `
-      <tr data-pid="${p.id}" data-bid="${p.boardId}">
+      <tr data-pid="${p.id}" data-bid="${p.boardId}" class="staggered-row" style="animation: rowSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: ${idx * 45}ms">
         <td><span class="tbl-title">${esc(p.title)}</span></td>
         <td><span class="tbl-board" style="background:${p.boardColor}">${p.boardEmoji} ${esc(p.boardName)}</span></td>
         <td><span class="tbl-status ${p.status}">${STATUS_MAP[p.status]}</span></td>
@@ -2265,10 +2265,10 @@ function renderShareBoardView() {
   
   const inProgress = sharedBoardProjects.filter(p => p.status === 'in-progress').length;
 
-  document.getElementById('sb-total').textContent = total;
-  document.getElementById('sb-progress').textContent = inProgress;
-  document.getElementById('sb-done').textContent = done;
-  document.getElementById('sb-overdue').textContent = overdue;
+  animateValue(document.getElementById('sb-total'), 0, total, 900);
+  animateValue(document.getElementById('sb-progress'), 0, inProgress, 900);
+  animateValue(document.getElementById('sb-done'), 0, done, 900);
+  animateValue(document.getElementById('sb-overdue'), 0, overdue, 900);
 
   // 2. 统计状态并绘制纯 CSS 环形饼图
   const statusCounts = { backlog: 0, 'in-progress': 0, testing: 0, done: 0, overdue: 0 };
@@ -2304,15 +2304,7 @@ function renderShareBoardView() {
   });
 
   const pieChartEl = document.getElementById('sb-pie-chart');
-  if (gradientParts.length > 0) {
-    // 强制补足 100% 避免圆环末端渐变缺失
-    if (accumPct < 100 && gradientParts.length > 0) {
-      gradientParts[gradientParts.length - 1] = gradientParts[gradientParts.length - 1].replace(/%$/, ' 100%');
-    }
-    pieChartEl.style.background = `conic-gradient(${gradientParts.join(', ')})`;
-  } else {
-    pieChartEl.style.background = 'var(--border)';
-  }
+  animatePieChart(pieChartEl, statusArr, chartStatusMap, total);
 
   // 默认中央显示数量最多的状态百分比
   if (statusArr.length > 0) {
@@ -2352,7 +2344,7 @@ function renderShareBoardView() {
 
   // 3. 渲染项目概览大表格
   const tbody = document.getElementById('share-board-table-body');
-  tbody.innerHTML = sharedBoardProjects.map(p => {
+  tbody.innerHTML = sharedBoardProjects.map((p, idx) => {
     let pct = 0;
     const totalSt = p.subtasks ? p.subtasks.length : 0;
     if (totalSt > 0) {
@@ -2366,7 +2358,7 @@ function renderShareBoardView() {
     const boardColor = p.boardColor || 'var(--accent)';
 
     return `
-      <tr data-pid="${p.id}">
+      <tr data-pid="${p.id}" class="staggered-row" style="animation: rowSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: ${idx * 45}ms">
         <td style="padding: 12px 8px; font-weight:700;"><span class="tbl-title">${esc(p.title)}</span></td>
         <td style="padding: 12px 8px;"><span class="tbl-board" style="background:${boardColor}; color:#fff; padding: 2px 8px; border-radius:10px; font-size:0.75rem;">📁 ${esc(p.boardName)}</span></td>
         <td style="padding: 12px 8px;"><span class="tbl-status ${p.status}">${STATUS_MAP[p.status]}</span></td>
@@ -2479,4 +2471,93 @@ function openShareBoardDetail(projId) {
 function closeShareBoardDetail() {
   document.getElementById('sb-detail-panel').classList.remove('open');
   document.getElementById('sb-detail-backdrop').classList.remove('active');
+}
+
+// ==========================================
+// 交互微动效控制辅助底层函数 (v12)
+// ==========================================
+function animateValue(el, start, end, duration = 800) {
+  if (!el) return;
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    // ease-out-quad 阻尼增长曲线
+    const easeProgress = progress * (2 - progress); 
+    const currentVal = Math.floor(easeProgress * (end - start) + start);
+    el.textContent = currentVal;
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      el.textContent = end;
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
+function animatePercentValue(el, start, end, duration = 800) {
+  if (!el) return;
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const easeProgress = progress * (2 - progress); 
+    const currentVal = Math.floor(easeProgress * (end - start) + start);
+    el.textContent = `${currentVal}%`;
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      el.textContent = `${end}%`;
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
+function animatePieChart(pieChartEl, statusArr, chartStatusMap, total) {
+  if (!pieChartEl) return;
+  let startTimestamp = null;
+  const duration = 1000; // 动画时长 1.0 秒
+  
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    // ease-out-cubic 阻尼曲线
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    
+    let accumPct = 0;
+    const currentParts = [];
+    
+    statusArr.forEach(item => {
+      const itemPct = item.pct * easeProgress;
+      const start = accumPct;
+      accumPct += itemPct;
+      const color = chartStatusMap[item.key]?.color || 'var(--accent)';
+      currentParts.push(`${color} ${start}% ${accumPct}%`);
+    });
+    
+    if (currentParts.length > 0) {
+      // 动态补余透明层以确保扫射平稳展开，并防圆环截断
+      if (accumPct < 100 * easeProgress) {
+        currentParts.push(`transparent ${accumPct}% ${100 * easeProgress}%`);
+      }
+      pieChartEl.style.background = `conic-gradient(${currentParts.join(', ')})`;
+    }
+    
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      // 动画结束回填最饱满的最终图表数据
+      let finalAccum = 0;
+      const finalParts = statusArr.map(item => {
+        const start = finalAccum;
+        finalAccum += item.pct;
+        return `${chartStatusMap[item.key].color} ${start}% ${finalAccum}%`;
+      });
+      if (finalAccum < 100 && finalParts.length > 0) {
+        finalParts[finalParts.length - 1] = finalParts[finalParts.length - 1].replace(/%$/, ' 100%');
+      }
+      pieChartEl.style.background = `conic-gradient(${finalParts.join(', ')})`;
+    }
+  };
+  window.requestAnimationFrame(step);
 }

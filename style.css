@@ -1550,3 +1550,75 @@ body{
 #share-board-table-body tr:hover {
   background-color: var(--bg-muted);
 }
+
+/* ====================================================================
+   交互微动效与视觉表现升级专属样式 (v13)
+   ==================================================================== */
+@keyframes gradient-flow-mesh {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.view-share-container, #login-overlay {
+  background: linear-gradient(-45deg, #f1f3f7, #eaedf1, #e0e7ff, #e0f2fe, #f5f3ff) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-flow-mesh 18s ease infinite !important;
+  transition: background-color var(--dur) var(--ease) !important;
+}
+
+[data-theme="dark"] .view-share-container,
+[data-theme="dark"] #login-overlay {
+  background: linear-gradient(-45deg, #0d111d, #141724, #121626, #161a29, #251036) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-flow-mesh 18s ease infinite !important;
+}
+
+/* 金属光泽 Shimmer 反光与 hover 微阻尼上浮缩放 */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s var(--ease), background-color var(--dur) var(--ease) !important;
+}
+.btn-shine:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(91, 95, 199, 0.22);
+}
+.btn-shine:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -80%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  transition: none;
+}
+.btn-shine:hover::after {
+  left: 150%;
+  transition: left 0.95s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 表格数据行滑入 staggered-delay 延迟 */
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.staggered-row {
+  opacity: 0;
+}

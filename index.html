@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
 </head>
 <body>
   <!-- 全局顶部导航栏 -->
@@ -109,7 +109,7 @@
     <section class="home-section">
       <div class="home-section-header">
         <h2>项目板块</h2>
-        <button class="btn btn-primary" id="btn-add-board">
+        <button class="btn btn-primary btn-shine" id="btn-add-board">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           新建板块
         </button>
@@ -123,7 +123,7 @@
     <section class="home-section">
       <div class="home-section-header">
         <h2>全部项目概览</h2>
-        <button class="btn btn-ghost" id="btn-share-all-board" style="color: var(--accent); border: 1px solid var(--accent-medium); background: var(--accent-soft); display: inline-flex; align-items: center; gap: 6px;">
+        <button class="btn btn-ghost btn-shine" id="btn-share-all-board" style="color: var(--accent); border: 1px solid var(--accent-medium); background: var(--accent-soft); display: inline-flex; align-items: center; gap: 6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
           分享整体看板
         </button>
@@ -207,7 +207,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           返回首页
         </button>
-        <button class="btn btn-primary" id="btn-add-project">
+        <button class="btn btn-primary btn-shine" id="btn-add-project">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           新建项目
         </button>
@@ -477,7 +477,7 @@
           <label>密码</label>
           <input type="password" id="login-password" placeholder="请输入密码" required autocomplete="current-password" />
         </div>
-        <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; justify-content: center; margin-top: 12px; padding: 10px 14px;">登 录</button>
+        <button type="submit" class="btn btn-primary btn-shine" id="btn-login-submit" style="width: 100%; justify-content: center; margin-top: 12px; padding: 10px 14px;">登 录</button>
       </form>
       <div class="login-footer">
         <span>管理员密码：admin | 员工密码：123</span>
@@ -641,7 +641,7 @@
       
       <div class="share-footer">
         <p>此进度报告由 IT项目管理看板 自动生成</p>
-        <button class="btn btn-primary" id="share-btn-go-home">进入 IT项目管理系统</button>
+        <button class="btn btn-primary btn-shine" id="share-btn-go-home">进入 IT项目管理系统</button>
       </div>
     </div>
   </div>
@@ -660,7 +660,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 16px;">
           <span class="share-time" id="share-board-time">更新时间：--</span>
-          <button class="btn btn-ghost" id="share-board-btn-go-home" style="border: 1px solid var(--border); padding: 4px 10px; font-size: 0.78rem;">进入 IT看板系统</button>
+          <button class="btn btn-ghost btn-shine" id="share-board-btn-go-home" style="border: 1px solid var(--border); padding: 4px 10px; font-size: 0.78rem;">进入 IT看板系统</button>
         </div>
       </div>
       
@@ -826,6 +826,6 @@
     </aside>
   </div>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
