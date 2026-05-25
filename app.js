@@ -1922,8 +1922,12 @@ function deleteUser(uid) {
 function encodeShareData(data) {
   try {
     const jsonStr = JSON.stringify(data);
-    const utf8Str = encodeURIComponent(jsonStr);
-    return btoa(unescape(utf8Str));
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binString = "";
+    bytes.forEach((byte) => {
+      binString += String.fromCharCode(byte);
+    });
+    return btoa(binString);
   } catch (e) {
     console.error("Encode share data failed", e);
     return '';
@@ -1932,9 +1936,19 @@ function encodeShareData(data) {
 
 function decodeShareData(base64Str) {
   try {
-    const utf8Str = escape(atob(base64Str));
-    const jsonStr = decodeURIComponent(utf8Str);
-    return JSON.parse(jsonStr);
+    if (!base64Str) return null;
+    // 1. 容错性过滤：应对可能存在的空格被转换问题，将空格还原为 +
+    const sanitized = base64Str.replace(/ /g, '+');
+    // 2. 解码为二进制字节串
+    const binString = atob(sanitized);
+    // 3. 将字节串转换为 Uint8Array
+    const bytes = new Uint8Array(binString.length);
+    for (let i = 0; i < binString.length; i++) {
+      bytes[i] = binString.charCodeAt(i);
+    }
+    // 4. 使用 TextDecoder 解码 UTF-8 并解析 JSON
+    const decodedStr = new TextDecoder().decode(bytes);
+    return JSON.parse(decodedStr);
   } catch (e) {
     console.error("Decode share data failed", e);
     return null;
@@ -1977,8 +1991,8 @@ function shareProjectProgress(projId) {
     return;
   }
   
-  // 组装分享 URL
-  const shareUrl = `${window.location.origin}${window.location.pathname}?share=${base64Str}`;
+  // 组装分享 URL (对 Base64 串进行 URL 安全转义，以防 + 和 / 字符漏失或转为空格)
+  const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(base64Str)}`;
   
   // 写入剪切板
   navigator.clipboard.writeText(shareUrl).then(() => {
