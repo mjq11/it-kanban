@@ -1628,10 +1628,11 @@ body{
    ==================================================================== */
 .chart-drilldown-popover {
   position: absolute;
-  /* 默认弹在左侧 */
-  right: calc(100% + 14px);
+  /* 全部改成弹在右侧 */
+  left: calc(100% + 14px);
+  right: auto;
   top: 50%;
-  transform: translateY(-50%) translate3d(-10px, 0, 0);
+  transform: translateY(-50%) translate3d(10px, 0, 0);
   width: 260px;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -1658,20 +1659,22 @@ body{
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
 }
 
+/* 三角形改在左侧指向左边 */
 .chart-drilldown-popover::after {
   content: '';
   position: absolute;
-  left: 100%;
+  right: 100%; /* 小三角在左侧 */
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
   border-width: 6px;
   border-style: solid;
-  border-color: transparent transparent transparent var(--border);
+  border-color: transparent var(--border) transparent transparent; /* 指向左边 */
   display: block;
   width: 0;
 }
 [data-theme="dark"] .chart-drilldown-popover::after {
-  border-color: transparent transparent transparent rgba(26, 29, 38, 0.9); /* 适配深色 */
+  border-color: transparent rgba(26, 29, 38, 0.9) transparent transparent !important;
 }
 
 .popover-title-text {
@@ -1755,7 +1758,7 @@ body{
   position: relative; /* 确保子 Popover 能够绝对定位 */
 }
 .legend-item:hover, .priority-bar-row:hover {
-  transform: translate3d(-3px, 0, 0) scale(1.015);
+  transform: translate3d(3px, 0, 0) scale(1.015); /* 改变悬停移动方向为向右 */
   background-color: var(--bg-muted);
   border-radius: var(--r-xs);
 }
