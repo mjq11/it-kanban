@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IT部项目看板 - 项目管理中心</title>
+  <meta name="description" content="IT部门项目看板管理系统，高效追踪项目进度与任务分配" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=10" />
+</head>
+<body>
+  <!-- 全局顶部导航栏 -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <div class="logo" id="logo">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect width="30" height="30" rx="8" fill="url(#lg)"/>
+          <path d="M8 10h14M8 15h14M8 20h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="30" y2="30"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+        </svg>
+        <span>IT 项目看板</span>
+      </div>
+      <!-- 面包屑导航 -->
+      <nav class="breadcrumb" id="breadcrumb"></nav>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" id="btn-user-mgmt" style="display: none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        账号管理
+      </button>
+      <button class="btn-icon" id="btn-theme" title="切换主题">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <div class="user-profile" id="user-profile" style="display: none">
+        <div class="avatar" id="user-avatar">管</div>
+        <span class="user-name" id="user-display-name">管理员</span>
+        <button class="btn-icon" id="btn-logout" title="退出登录">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======== 首页视图 ======== -->
+  <div class="view" id="view-home">
+    <!-- 统计看板 -->
+    <section class="dashboard" id="dashboard">
+      <div class="stat-card" id="stat-total">
+        <div class="stat-icon stat-icon-total">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="sv-total">0</span>
+          <span class="stat-label">全部项目</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-progress">
+        <div class="stat-icon stat-icon-progress">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="sv-progress">0</span>
+          <span class="stat-label">进行中</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-done">
+        <div class="stat-icon stat-icon-done">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="sv-done">0</span>
+          <span class="stat-label">已完成</span>
+        </div>
+      </div>
+      <div class="stat-card" id="stat-overdue">
+        <div class="stat-icon stat-icon-overdue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="sv-overdue">0</span>
+          <span class="stat-label">已逾期</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 图形看板 -->
+    <section class="charts-dashboard" id="charts-dashboard">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>项目状态分布</h3>
+        </div>
+        <div class="chart-body" id="chart-status-body">
+          <!-- 动态渲染状态环形图 -->
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>项目优先级分布</h3>
+        </div>
+        <div class="chart-body" id="chart-priority-body">
+          <!-- 动态渲染优先级条形图 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 板块区域 -->
+    <section class="home-section">
+      <div class="home-section-header">
+        <h2>项目板块</h2>
+        <button class="btn btn-primary" id="btn-add-board">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          新建板块
+        </button>
+      </div>
+      <div class="board-grid" id="board-grid">
+        <!-- 动态渲染 -->
+      </div>
+    </section>
+
+    <!-- 全部项目概览表格 -->
+    <section class="home-section">
+      <div class="home-section-header">
+        <h2>全部项目概览</h2>
+      </div>
+      <!-- 筛选工具栏 -->
+      <div class="home-filter-bar" id="home-filter-bar">
+        <div class="home-filter-left">
+          <!-- 状态快捷按钮 -->
+          <div class="home-status-group">
+            <button class="home-status-btn active" data-status="all">全部</button>
+            <button class="home-status-btn" data-status="in-progress">
+              <span class="hf-dot in-progress"></span>进行中
+            </button>
+            <button class="home-status-btn" data-status="done">
+              <span class="hf-dot done"></span>已完成
+            </button>
+            <button class="home-status-btn" data-status="overdue">
+              <span class="hf-dot overdue"></span>已逾期
+            </button>
+          </div>
+          <!-- 下拉筛选 -->
+          <div class="home-filter-selects">
+            <select id="hf-board" class="hf-select">
+              <option value="all">全部板块</option>
+            </select>
+            <select id="hf-priority" class="hf-select">
+              <option value="all">全部优先级</option>
+              <option value="high">🔴 紧急</option>
+              <option value="medium">🟡 重要</option>
+              <option value="low">🟢 普通</option>
+            </select>
+            <select id="hf-assignee" class="hf-select">
+              <option value="all">全部负责人</option>
+            </select>
+          </div>
+        </div>
+        <div class="home-filter-right">
+          <button class="hf-clear-btn" id="hf-clear" title="清除筛选">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            清除
+          </button>
+          <div class="search-box" id="home-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="home-search" placeholder="搜索项目..." />
+          </div>
+        </div>
+      </div>
+      <!-- 筛选结果提示 -->
+      <div class="home-filter-result" id="home-filter-result" style="display:none">
+        <span id="hf-result-text">筛选结果: 0 个项目</span>
+      </div>
+      <div class="project-table-wrapper">
+        <table class="project-table" id="project-table">
+          <thead>
+            <tr>
+              <th>项目名称</th>
+              <th>所属板块</th>
+              <th>状态</th>
+              <th>优先级</th>
+              <th>负责人</th>
+              <th>进度</th>
+              <th>截止日期</th>
+            </tr>
+          </thead>
+          <tbody id="project-table-body">
+          </tbody>
+        </table>
+        <div class="table-empty" id="table-empty" style="display:none">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+          <span>暂无项目数据</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======== 板块视图（看板） ======== -->
+  <div class="view" id="view-board" style="display:none">
+    <div class="board-toolbar">
+      <div class="board-toolbar-left" style="display: flex; align-items: center; gap: 8px;">
+        <button class="btn btn-ghost" id="btn-board-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          返回首页
+        </button>
+        <button class="btn btn-primary" id="btn-add-project">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          新建项目
+        </button>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="high"><span class="priority-dot high"></span>紧急</button>
+        <button class="filter-btn" data-filter="medium"><span class="priority-dot medium"></span>重要</button>
+        <button class="filter-btn" data-filter="low"><span class="priority-dot low"></span>普通</button>
+      </div>
+    </div>
+    <main class="kanban" id="kanban">
+      <section class="kb-column" data-status="backlog">
+        <div class="kb-col-header"><span class="kb-dot backlog"></span><h3>待办</h3><span class="kb-count" id="kc-backlog">0</span></div>
+        <div class="kb-list" id="kl-backlog"></div>
+      </section>
+      <section class="kb-column" data-status="in-progress">
+        <div class="kb-col-header"><span class="kb-dot in-progress"></span><h3>进行中</h3><span class="kb-count" id="kc-in-progress">0</span></div>
+        <div class="kb-list" id="kl-in-progress"></div>
+      </section>
+      <section class="kb-column" data-status="testing">
+        <div class="kb-col-header"><span class="kb-dot testing"></span><h3>测试中</h3><span class="kb-count" id="kc-testing">0</span></div>
+        <div class="kb-list" id="kl-testing"></div>
+      </section>
+      <section class="kb-column" data-status="done">
+        <div class="kb-col-header"><span class="kb-dot done"></span><h3>已完成</h3><span class="kb-count" id="kc-done">0</span></div>
+        <div class="kb-list" id="kl-done"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ======== 项目详情侧滑面板 ======== -->
+  <div class="panel-backdrop" id="panel-backdrop"></div>
+  <aside class="panel" id="panel">
+    <div class="pn-header">
+      <div class="pn-header-left">
+        <span class="pn-id" id="pn-id">#1</span>
+        <div class="pn-priority-badge" id="pn-badge">紧急</div>
+      </div>
+      <div class="pn-header-right">
+        <button class="btn-icon" id="pn-btn-edit" title="编辑项目"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon" id="pn-btn-del" title="删除项目"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        <button class="btn-icon" id="pn-btn-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+    <div class="pn-title-bar">
+      <h2 id="pn-title">项目标题</h2>
+      <select class="pn-status-sel" id="pn-status-sel">
+        <option value="backlog">待办</option>
+        <option value="in-progress">进行中</option>
+        <option value="testing">测试中</option>
+        <option value="done">已完成</option>
+      </select>
+    </div>
+    <!-- 标签页 -->
+    <div class="pn-tabs">
+      <button class="pn-tab active" data-tab="info">详情</button>
+      <button class="pn-tab" data-tab="subtasks">子任务 <span class="pn-tab-num" id="pn-st-count">0</span></button>
+      <button class="pn-tab" data-tab="files">资料 <span class="pn-tab-num" id="pn-files-count">0</span></button>
+      <button class="pn-tab" data-tab="log">动态</button>
+    </div>
+    <div class="pn-body">
+      <!-- 详情 tab -->
+      <div class="pn-pane active" id="pane-info">
+        <div class="pn-section">
+          <h4>进度总览</h4>
+          <div class="pn-progress-block" id="pn-progress-block"></div>
+        </div>
+        <div class="pn-section">
+          <h4>描述</h4>
+          <p class="pn-desc" id="pn-desc">暂无描述</p>
+        </div>
+        <div class="pn-section">
+          <h4>详细信息</h4>
+          <div class="pn-meta-grid" id="pn-meta-grid"></div>
+        </div>
+      </div>
+      <!-- 子任务 tab -->
+      <div class="pn-pane" id="pane-subtasks">
+        <div class="pn-section">
+          <div class="pn-st-progress" id="pn-st-progress"></div>
+        </div>
+        <div class="pn-st-list" id="pn-st-list"></div>
+        <div class="pn-st-add">
+          <input type="text" id="pn-st-input" placeholder="添加子任务，回车确认..." />
+        </div>
+      </div>
+      <!-- 资料 tab -->
+      <div class="pn-pane" id="pane-files">
+        <div class="pn-section">
+          <div class="file-upload-zone" id="file-upload-zone">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span>将文件拖拽到此处，或 <em>点击上传</em></span>
+            <input type="file" id="file-input" multiple style="display: none" />
+            <span class="file-upload-hint">支持任意格式，单个文件限 1MB，总大小限 3MB</span>
+          </div>
+        </div>
+        <div class="pn-section">
+          <h4>已上传资料</h4>
+          <div class="pn-file-list" id="pn-file-list"></div>
+        </div>
+      </div>
+      <!-- 动态 tab -->
+      <div class="pn-pane" id="pane-log">
+        <div class="pn-timeline" id="pn-timeline"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ======== 新建/编辑板块模态框 ======== -->
+  <div class="modal-overlay" id="board-modal-overlay">
+    <div class="modal modal-sm" id="board-modal">
+      <div class="modal-header">
+        <h3 id="board-modal-title">新建板块</h3>
+        <button class="btn-icon" id="board-modal-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>板块名称 <span class="req">*</span></label>
+          <input type="text" id="board-name" placeholder="例如：开发组" required />
+        </div>
+        <div class="form-group">
+          <label>图标 Emoji</label>
+          <div class="emoji-picker" id="emoji-picker">
+            <span class="emoji-opt selected" data-emoji="🔧">🔧</span>
+            <span class="emoji-opt" data-emoji="🖥️">🖥️</span>
+            <span class="emoji-opt" data-emoji="🤖">🤖</span>
+            <span class="emoji-opt" data-emoji="🛡️">🛡️</span>
+            <span class="emoji-opt" data-emoji="📊">📊</span>
+            <span class="emoji-opt" data-emoji="🚀">🚀</span>
+            <span class="emoji-opt" data-emoji="⚙️">⚙️</span>
+            <span class="emoji-opt" data-emoji="🧪">🧪</span>
+            <span class="emoji-opt" data-emoji="📱">📱</span>
+            <span class="emoji-opt" data-emoji="☁️">☁️</span>
+            <span class="emoji-opt" data-emoji="🔒">🔒</span>
+            <span class="emoji-opt" data-emoji="📡">📡</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>主题色</label>
+          <div class="color-picker" id="color-picker">
+            <span class="color-opt selected" data-color="#6366f1" style="background:#6366f1"></span>
+            <span class="color-opt" data-color="#3b82f6" style="background:#3b82f6"></span>
+            <span class="color-opt" data-color="#06b6d4" style="background:#06b6d4"></span>
+            <span class="color-opt" data-color="#22c55e" style="background:#22c55e"></span>
+            <span class="color-opt" data-color="#f59e0b" style="background:#f59e0b"></span>
+            <span class="color-opt" data-color="#ef4444" style="background:#ef4444"></span>
+            <span class="color-opt" data-color="#a855f7" style="background:#a855f7"></span>
+            <span class="color-opt" data-color="#ec4899" style="background:#ec4899"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="board-modal-cancel">取消</button>
+          <button class="btn btn-primary" id="board-modal-save">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 新建/编辑项目模态框 ======== -->
+  <div class="modal-overlay" id="proj-modal-overlay">
+    <div class="modal modal-md" id="proj-modal">
+      <div class="modal-header">
+        <h3 id="proj-modal-title">新建项目</h3>
+        <button class="btn-icon" id="proj-modal-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <form id="proj-form" class="modal-body">
+        <div class="form-group">
+          <label>项目名称 <span class="req">*</span></label>
+          <input type="text" id="proj-title" placeholder="输入项目名称..." required />
+        </div>
+        <div class="form-group">
+          <label>项目描述</label>
+          <textarea id="proj-desc" rows="3" placeholder="描述项目详情..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>优先级</label>
+            <select id="proj-priority">
+              <option value="low">普通</option>
+              <option value="medium">重要</option>
+              <option value="high">紧急</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <select id="proj-status">
+              <option value="backlog">待办</option>
+              <option value="in-progress">进行中</option>
+              <option value="testing">测试中</option>
+              <option value="done">已完成</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>负责人</label>
+            <input type="text" id="proj-assignee" placeholder="负责人姓名" />
+          </div>
+          <div class="form-group">
+            <label>截止日期</label>
+            <input type="date" id="proj-deadline" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="proj-modal-cancel">取消</button>
+          <button type="submit" class="btn btn-primary" id="proj-modal-save">创建项目</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======== 编辑子任务模态框 ======== -->
+  <div class="modal-overlay" id="st-edit-overlay">
+    <div class="modal modal-sm" id="st-edit-modal">
+      <div class="modal-header">
+        <h3>编辑子任务</h3>
+        <button class="btn-icon" id="st-edit-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>子任务内容</label>
+          <input type="text" id="st-edit-text" placeholder="子任务内容..." />
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="st-edit-cancel">取消</button>
+          <button class="btn btn-primary" id="st-edit-save">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 确认删除 ======== -->
+  <div class="modal-overlay" id="confirm-overlay">
+    <div class="modal modal-confirm">
+      <div class="confirm-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      </div>
+      <h3 id="confirm-title">确认删除</h3>
+      <p id="confirm-msg">此操作不可撤销，确定要删除吗？</p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" id="confirm-cancel">取消</button>
+        <button class="btn btn-danger" id="confirm-ok">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 登录覆盖层 ======== -->
+  <div class="login-overlay" id="login-overlay" style="display: none">
+    <div class="login-card">
+      <div class="login-header">
+        <svg width="40" height="40" viewBox="0 0 30 30" fill="none">
+          <rect width="30" height="30" rx="8" fill="url(#lg-login)"/>
+          <path d="M8 10h14M8 15h14M8 20h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+          <defs><linearGradient id="lg-login" x1="0" y1="0" x2="30" y2="30"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+        </svg>
+        <h3>IT 项目看板</h3>
+        <p>工作协同与项目管理中心</p>
+      </div>
+      <form class="login-form" id="login-form">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" id="login-username" placeholder="请输入用户名" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="login-password" placeholder="请输入密码" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; justify-content: center; margin-top: 12px; padding: 10px 14px;">登 录</button>
+      </form>
+      <div class="login-footer">
+        <span>管理员密码：admin | 员工密码：123</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 账号管理主模态框 ======== -->
+  <div class="modal-overlay" id="user-mgmt-overlay">
+    <div class="modal modal-md" id="user-mgmt-modal" style="width: 600px; max-width: 95vw;">
+      <div class="modal-header">
+        <h3>账号管理</h3>
+        <button class="btn-icon" id="user-mgmt-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body" style="padding-top: 10px;">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+          <button class="btn btn-primary" id="btn-add-user">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            新增账号
+          </button>
+        </div>
+        <div class="user-table-wrapper" style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-muted);">
+          <table class="project-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: var(--border-light);">
+                <th style="padding: 10px 14px; text-align: left; font-size: .75rem; font-weight: 600; color: var(--text-muted);">用户名</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: .75rem; font-weight: 600; color: var(--text-muted);">真实姓名</th>
+                <th style="padding: 10px 14px; text-align: left; font-size: .75rem; font-weight: 600; color: var(--text-muted);">角色</th>
+                <th style="padding: 10px 14px; text-align: right; font-size: .75rem; font-weight: 600; color: var(--text-muted);">操作</th>
+              </tr>
+            </thead>
+            <tbody id="user-table-body">
+              <!-- 动态渲染 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 新建/编辑账号子模态框 ======== -->
+  <div class="modal-overlay" id="user-edit-overlay" style="z-index: 210;">
+    <div class="modal modal-sm" id="user-edit-modal">
+      <div class="modal-header">
+        <h3 id="user-edit-title">新增账号</h3>
+        <button class="btn-icon" id="user-edit-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <form id="user-edit-form" class="modal-body">
+        <input type="hidden" id="user-edit-id" />
+        <div class="form-group">
+          <label>用户名 <span class="req">*</span></label>
+          <input type="text" id="user-username" placeholder="登录用户名，例如 zhangming" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>真实姓名 <span class="req">*</span></label>
+          <input type="text" id="user-realname" placeholder="与项目负责人匹配，例如 张明" required />
+        </div>
+        <div class="form-group">
+          <label>密码 <span class="req">*</span></label>
+          <input type="password" id="user-password" placeholder="请输入密码" required autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>角色</label>
+          <select id="user-role">
+            <option value="user">普通成员</option>
+            <option value="admin">管理员</option>
+          </select>
+        </div>
+        <div class="form-group" id="user-edit-permissions-group" style="display: none">
+          <label>数据查看权限 (可额外查看的人员项目)</label>
+          <div class="user-permissions-list" id="user-permissions-list">
+            <!-- 动态填充其他普通用户的复选框 -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="user-edit-cancel">取消</button>
+          <button type="submit" class="btn btn-primary" id="user-edit-save">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js?v=9"></script>
+</body>
+</html>
