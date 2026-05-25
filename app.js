@@ -229,7 +229,7 @@ function bindEvents() {
   document.getElementById('pn-btn-close').addEventListener('click', closePanel);
   document.getElementById('panel-backdrop').addEventListener('click', closePanel);
   document.getElementById('pn-btn-share').addEventListener('click', () => { if(activeProjId) shareProjectProgress(activeProjId); });
-  document.getElementById('pn-btn-edit').addEventListener('click', () => { if(activeProjId){ closePanel(); setTimeout(()=>openProjModal(activeProjId),250); } });
+  document.getElementById('pn-btn-edit').addEventListener('click', () => { if(activeProjId){ const pid = activeProjId; closePanel(); setTimeout(()=>openProjModal(pid),250); } });
   document.getElementById('pn-btn-del').addEventListener('click', () => { if(activeProjId) showConfirm('确认删除','此操作不可撤销，确定要删除该项目吗？',()=>{ deleteProject(activeProjId); closePanel(); }); });
   document.getElementById('pn-status-sel').addEventListener('change', e => {
     if(!activeProjId) return;
