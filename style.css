@@ -854,11 +854,13 @@ body{
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative; /* 建立定位上下文以支持 z-index 提升 */
   transition: all var(--dur);
 }
 .chart-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--border-hover);
+  z-index: 10; /* 悬停时将整张卡片的层级提升到最高，防止内部 Popover 被相邻卡片遮挡 */
 }
 .chart-header h3 {
   font-size: .88rem;
