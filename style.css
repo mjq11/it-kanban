@@ -1624,7 +1624,7 @@ body{
 }
 
 /* ====================================================================
-   图形看板穿透查看项目明细专属样式 (v14)
+   图形看板穿透查看项目明细专属样式 (v15) - GPU 3D 硬件加速极速丝滑版
    ==================================================================== */
 .chart-drilldown {
   margin-top: 16px;
@@ -1655,12 +1655,16 @@ body{
   gap: 6px;
   max-height: 120px;
   overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* 开启 iOS/Safari 丝滑惯性滚动 */
+  will-change: transform;
+  transform: translate3d(0, 0, 0); /* 强行创建 GPU 独立合成层，绕过 CPU 重绘 */
   animation: slideUpIn 0.35s var(--spring);
 }
 
 @keyframes slideUpIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .chart-drilldown-item {
@@ -1672,12 +1676,14 @@ body{
   background: var(--bg-muted);
   border: 1px solid var(--border-light);
   border-radius: var(--r-sm);
-  transition: all 0.2s var(--ease);
+  will-change: transform;
+  transform: translate3d(0, 0, 0); /* 每一个行卡片也使用 GPU 加速层 */
+  transition: transform 0.2s var(--ease), background-color 0.2s var(--ease), border-color 0.2s var(--ease);
 }
 .chart-drilldown-item:hover {
   background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  transform: translateX(3px);
+  border-color: var(--border);
+  transform: translate3d(3px, 0, 0); /* 使用 3D 平移，由 GPU 在合成时瞬间处理，不触发任何 Layout 重排 */
 }
 
 .drilldown-title {
@@ -1714,10 +1720,12 @@ body{
 /* hover 分类时的弹性立体高亮反馈 */
 .legend-item, .priority-bar-row {
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s var(--ease) !important;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 .legend-item:hover, .priority-bar-row:hover {
-  transform: scale(1.015) translateX(2px);
+  transform: translate3d(2px, 0, 0) scale(1.015);
   background-color: var(--bg-muted);
   border-radius: var(--r-xs);
 }
