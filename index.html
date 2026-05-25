@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=10" />
+  <link rel="stylesheet" href="style.css?v=11" />
 </head>
 <body>
   <!-- 全局顶部导航栏 -->
@@ -244,6 +244,7 @@
         <div class="pn-priority-badge" id="pn-badge">紧急</div>
       </div>
       <div class="pn-header-right">
+        <button class="btn-icon" id="pn-btn-share" title="分享项目进度" style="color: var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg></button>
         <button class="btn-icon" id="pn-btn-edit" title="编辑项目"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="btn-icon" id="pn-btn-del" title="删除项目"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         <button class="btn-icon" id="pn-btn-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -558,6 +559,89 @@
   <!-- Toast -->
   <div class="toast-container" id="toast-container"></div>
 
-  <script src="app.js?v=9"></script>
+  <!-- ======== 只读进度分享视图 ======== -->
+  <div class="view-share-container" id="view-share" style="display: none;">
+    <div class="share-card">
+      <div class="share-header">
+        <div class="share-logo">
+          <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+            <rect width="30" height="30" rx="8" fill="url(#lg_share)"/>
+            <path d="M8 10h14M8 15h14M8 20h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+            <defs><linearGradient id="lg_share" x1="0" y1="0" x2="30" y2="30"><stop stop-color="#5b5fc7"/><stop offset="1" stop-color="#8e4ec6"/></linearGradient></defs>
+          </svg>
+          <span>IT 项目进度报告</span>
+        </div>
+        <span class="share-time" id="share-time">更新时间：--</span>
+      </div>
+      
+      <div class="share-body">
+        <div class="share-main-info">
+          <div class="share-title-row">
+            <h1 class="share-title" id="share-title">项目名称</h1>
+            <span class="share-status-badge" id="share-status">进行中</span>
+          </div>
+          
+          <div class="share-meta-grid">
+            <div class="share-meta-item">
+              <span class="share-meta-label">负责人</span>
+              <span class="share-meta-val" id="share-assignee">--</span>
+            </div>
+            <div class="share-meta-item">
+              <span class="share-meta-label">所属板块</span>
+              <span class="share-meta-val" id="share-board">📁 --</span>
+            </div>
+            <div class="share-meta-item">
+              <span class="share-meta-label">优先级</span>
+              <span class="share-meta-val" id="share-priority">⚡ --</span>
+            </div>
+            <div class="share-meta-item">
+              <span class="share-meta-label">截止日期</span>
+              <span class="share-meta-val" id="share-deadline">--</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="share-progress-section">
+          <div class="share-progress-header">
+            <h3>整体项目进度</h3>
+            <span class="share-progress-num" id="share-progress-num">0%</span>
+          </div>
+          <div class="share-progress-track">
+            <div class="share-progress-fill" id="share-progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+        
+        <div class="share-desc-section">
+          <h3>项目描述与最新进展</h3>
+          <p class="share-desc-content" id="share-desc">暂无描述</p>
+        </div>
+        
+        <div class="share-section-grid">
+          <!-- 子任务列表 -->
+          <div class="share-section-card" id="share-subtasks-card" style="display: none;">
+            <h3>子任务拆解</h3>
+            <ul class="share-list" id="share-subtasks-list">
+              <!-- 动态渲染 -->
+            </ul>
+          </div>
+          
+          <!-- 历史动态 -->
+          <div class="share-section-card" id="share-logs-card" style="display: none;">
+            <h3>最新动态记录</h3>
+            <div class="share-timeline" id="share-logs-list">
+              <!-- 动态渲染 -->
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="share-footer">
+        <p>此进度报告由 IT项目管理看板 自动生成</p>
+        <button class="btn btn-primary" id="share-btn-go-home">进入 IT项目管理系统</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=10"></script>
 </body>
 </html>

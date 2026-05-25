@@ -228,6 +228,7 @@ function bindEvents() {
   // ---- 详情面板 ----
   document.getElementById('pn-btn-close').addEventListener('click', closePanel);
   document.getElementById('panel-backdrop').addEventListener('click', closePanel);
+  document.getElementById('pn-btn-share').addEventListener('click', () => { if(activeProjId) shareProjectProgress(activeProjId); });
   document.getElementById('pn-btn-edit').addEventListener('click', () => { if(activeProjId){ closePanel(); setTimeout(()=>openProjModal(activeProjId),250); } });
   document.getElementById('pn-btn-del').addEventListener('click', () => { if(activeProjId) showConfirm('确认删除','此操作不可撤销，确定要删除该项目吗？',()=>{ deleteProject(activeProjId); closePanel(); }); });
   document.getElementById('pn-status-sel').addEventListener('change', e => {
@@ -1658,6 +1659,12 @@ function toast(msg) {
 // 登录鉴权与用户管理业务逻辑
 // ============================
 function checkAuthAndRender() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('share')) {
+    renderShareView();
+    return;
+  }
+
   const loginOverlay = document.getElementById('login-overlay');
   const userProfile = document.getElementById('user-profile');
   const btnUserMgmt = document.getElementById('btn-user-mgmt');
@@ -1907,4 +1914,199 @@ function deleteUser(uid) {
   saveState();
   renderUserTable();
   toast('账号已删除');
+}
+
+// ==========================================
+// 进度外链分享逻辑 (UTF-8 安全的 Base64 编解码)
+// ==========================================
+function encodeShareData(data) {
+  try {
+    const jsonStr = JSON.stringify(data);
+    const utf8Str = encodeURIComponent(jsonStr);
+    return btoa(unescape(utf8Str));
+  } catch (e) {
+    console.error("Encode share data failed", e);
+    return '';
+  }
+}
+
+function decodeShareData(base64Str) {
+  try {
+    const utf8Str = escape(atob(base64Str));
+    const jsonStr = decodeURIComponent(utf8Str);
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error("Decode share data failed", e);
+    return null;
+  }
+}
+
+function shareProjectProgress(projId) {
+  const proj = findProject(projId);
+  if (!proj) {
+    toast('项目不存在！');
+    return;
+  }
+  
+  // 查找所属板块的信息
+  let boardName = '未定义板块';
+  const board = state.boards.find(b => b.projects.some(p => p.id === projId));
+  if (board) {
+    boardName = `${board.emoji} ${board.name}`;
+  }
+  
+  // 仅抓取用于渲染进度卡片所需的非敏感情报（不含附件 base64，确保 URL 安全长度）
+  const shareObj = {
+    id: proj.id,
+    title: proj.title,
+    desc: proj.desc || '',
+    priority: proj.priority,
+    status: proj.status,
+    assignee: proj.assignee || '未分配',
+    deadline: proj.deadline || '',
+    boardName: boardName,
+    manualProgress: proj.manualProgress || 0,
+    subtasks: (proj.subtasks || []).map(s => ({ text: s.text, done: s.done })),
+    logs: (proj.logs || []).slice(0, 5).map(l => ({ text: l.text, time: l.time })), // 仅传输近 5 条动态
+    sharedAt: new Date().toISOString()
+  };
+  
+  const base64Str = encodeShareData(shareObj);
+  if (!base64Str) {
+    toast('生成分享链接失败！');
+    return;
+  }
+  
+  // 组装分享 URL
+  const shareUrl = `${window.location.origin}${window.location.pathname}?share=${base64Str}`;
+  
+  // 写入剪切板
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    toast('🔗 项目进度分享链接已成功复制到剪贴板，他人免登录即可访问！');
+  }).catch(err => {
+    console.error('Could not copy text: ', err);
+    // 降级使用原生 prompt
+    prompt('分享链接生成成功，请手动复制：', shareUrl);
+  });
+}
+
+function renderShareView() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const base64Str = urlParams.get('share');
+  if (!base64Str) return;
+  
+  // 彻底隐藏除分享视图外的所有主要面板
+  document.getElementById('view-share').style.display = 'flex';
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('view-home').style.display = 'none';
+  document.getElementById('view-board').style.display = 'none';
+  
+  // 确保侧滑面板也是关闭状态
+  const panel = document.getElementById('panel');
+  if (panel) panel.classList.remove('open');
+  const backdrop = document.getElementById('panel-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
+  
+  const data = decodeShareData(base64Str);
+  if (!data) {
+    // 渲染解析错误降级画面
+    document.querySelector('#view-share .share-card').innerHTML = `
+      <div class="share-header" style="justify-content: center; background: var(--red-soft);">
+        <div class="share-logo" style="color: var(--red);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>报告加载失败</span>
+        </div>
+      </div>
+      <div class="share-body" style="text-align: center; padding: 48px 32px;">
+        <h2 style="color: var(--text);">分享链接已失效或数据已损坏</h2>
+        <p style="color: var(--text-secondary); max-width: 460px; margin: 12px auto 24px auto; font-size: 0.9rem; line-height: 1.6;">
+          可能由于分享内容被人工修改，或者项目进度数据损坏导致校验未通过。请重新生成进度外链。
+        </p>
+        <button class="btn btn-primary" id="share-btn-go-home-err">进入 IT项目管理系统</button>
+      </div>
+    `;
+    document.getElementById('share-btn-go-home-err').addEventListener('click', () => {
+      window.location.href = window.location.origin + window.location.pathname;
+    });
+    return;
+  }
+  
+  // 开始渲染真实项目报告
+  document.getElementById('share-title').textContent = data.title;
+  
+  // 状态与徽章
+  const statusEl = document.getElementById('share-status');
+  statusEl.className = `share-status-badge ${data.status}`;
+  statusEl.textContent = STATUS_MAP[data.status] || '未知';
+  
+  // 属性网格
+  document.getElementById('share-assignee').textContent = data.assignee;
+  document.getElementById('share-board').textContent = data.boardName;
+  document.getElementById('share-priority').textContent = `⚡ ${PRIORITY_MAP[data.priority] || '普通'}`;
+  document.getElementById('share-deadline').textContent = data.deadline ? fmtDate(data.deadline) : '未设置';
+  
+  // 生成与更新时间
+  if (data.sharedAt) {
+    const d = new Date(data.sharedAt);
+    document.getElementById('share-time').textContent = `更新时间：${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  
+  // 进度算法
+  let pct = 0;
+  const totalSt = data.subtasks ? data.subtasks.length : 0;
+  if (totalSt > 0) {
+    const doneSt = data.subtasks.filter(s => s.done).length;
+    pct = Math.round((doneSt / totalSt) * 100);
+  } else {
+    pct = data.manualProgress || 0;
+  }
+  
+  // 更新进度条 UI
+  document.getElementById('share-progress-num').textContent = `${pct}%`;
+  const fillEl = document.getElementById('share-progress-fill');
+  fillEl.style.width = `${pct}%`;
+  if (pct === 100) {
+    fillEl.classList.add('complete');
+  } else {
+    fillEl.classList.remove('complete');
+  }
+  
+  // 项目进展描述
+  document.getElementById('share-desc').textContent = data.desc || '项目负责人暂无撰写详细描述。';
+  
+  // 子任务列表
+  const subtasksCard = document.getElementById('share-subtasks-card');
+  const subtasksList = document.getElementById('share-subtasks-list');
+  if (totalSt > 0) {
+    subtasksCard.style.display = 'flex';
+    subtasksList.innerHTML = data.subtasks.map(s => `
+      <li class="share-list-item ${s.done ? 'done' : ''}">
+        <span class="share-checkbox ${s.done ? 'checked' : ''}"></span>
+        <span>${esc(s.text)}</span>
+      </li>
+    `).join('');
+  } else {
+    subtasksCard.style.display = 'none';
+  }
+  
+  // 动态记录时间轴
+  const logsCard = document.getElementById('share-logs-card');
+  const logsList = document.getElementById('share-logs-list');
+  if (data.logs && data.logs.length > 0) {
+    logsCard.style.display = 'flex';
+    logsList.innerHTML = data.logs.map(l => `
+      <div class="share-timeline-item">
+        <span class="share-timeline-time">${l.time ? fmtTimeAgo(l.time) : '--'}</span>
+        <p class="share-timeline-text">${esc(l.text)}</p>
+      </div>
+    `).join('');
+  } else {
+    logsCard.style.display = 'none';
+  }
+  
+  // 返回首页事件
+  document.getElementById('share-btn-go-home').addEventListener('click', () => {
+    window.location.href = window.location.origin + window.location.pathname;
+  });
 }
