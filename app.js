@@ -457,6 +457,37 @@ function renderHomeCharts() {
   if (!statusBody || !priorityBody) return;
  
   const total = projects.length;
+
+  // 辅助渲染明细气泡
+  const getDrilldownPopoverHtml = (filterField, filterValue, titleText) => {
+    const matched = projects.filter(p => p[filterField] === filterValue);
+    let listHtml = '';
+    if (matched.length === 0) {
+      listHtml = `<div class="popover-empty">暂无该分类下的项目</div>`;
+    } else {
+      listHtml = matched.map(p => {
+        const progress = getProjectProgress(p);
+        return `
+          <div class="chart-drilldown-item">
+            <span class="drilldown-title" title="${esc(p.title)}">${esc(p.title)}</span>
+            <div class="drilldown-meta">
+              <span class="drilldown-owner">👤 ${esc(p.assignee || '未分配')}</span>
+              <span class="drilldown-pct">${progress}%</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    return `
+      <div class="chart-drilldown-popover">
+        <div class="popover-title-text">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.8;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span>${titleText}明细 (${matched.length})</span>
+        </div>
+        <div class="chart-drilldown-list-raw">
+          ${listHtml}
+        </div>
+      </div>`;
+  };
  
   if (total === 0) {
     const emptyHtml = `
@@ -502,27 +533,24 @@ function renderHomeCharts() {
         <div class="legend-item" data-status="backlog">
           <div class="legend-left"><span class="legend-dot backlog"></span>待办</div>
           <div><span class="legend-count">${statusCounts.backlog}</span><span class="legend-pct">${bPct.toFixed(0)}%</span></div>
+          ${getDrilldownPopoverHtml('status', 'backlog', '待办项目')}
         </div>
         <div class="legend-item" data-status="in-progress">
           <div class="legend-left"><span class="legend-dot in-progress"></span>进行中</div>
           <div><span class="legend-count">${statusCounts['in-progress']}</span><span class="legend-pct">${ipPct.toFixed(0)}%</span></div>
+          ${getDrilldownPopoverHtml('status', 'in-progress', '进行中项目')}
         </div>
         <div class="legend-item" data-status="testing">
           <div class="legend-left"><span class="legend-dot testing"></span>测试中</div>
           <div><span class="legend-count">${statusCounts.testing}</span><span class="legend-pct">${tPct.toFixed(0)}%</span></div>
+          ${getDrilldownPopoverHtml('status', 'testing', '测试中项目')}
         </div>
         <div class="legend-item" data-status="done">
           <div class="legend-left"><span class="legend-dot done"></span>已完成</div>
           <div><span class="legend-count">${statusCounts.done}</span><span class="legend-pct">${dPct.toFixed(0)}%</span></div>
+          ${getDrilldownPopoverHtml('status', 'done', '已完成项目')}
         </div>
       </div>
-    </div>
-    <div class="chart-drilldown" id="status-chart-drilldown">
-      <div class="chart-drilldown-placeholder">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-        <span>悬停在上方分类上可穿透查看具体项目明细</span>
-      </div>
-      <div class="chart-drilldown-list" style="display: none;"></div>
     </div>`;
  
   // 2. 优先级条形图绘制
@@ -547,6 +575,7 @@ function renderHomeCharts() {
         <div class="priority-bar-track">
           <div class="priority-bar-fill high" style="width: ${hPct}%"></div>
         </div>
+        ${getDrilldownPopoverHtml('priority', 'high', '紧急项目')}
       </div>
       <div class="priority-bar-row" data-priority="medium">
         <div class="priority-bar-label">
@@ -556,6 +585,7 @@ function renderHomeCharts() {
         <div class="priority-bar-track">
           <div class="priority-bar-fill medium" style="width: ${mPct}%"></div>
         </div>
+        ${getDrilldownPopoverHtml('priority', 'medium', '重要项目')}
       </div>
       <div class="priority-bar-row" data-priority="low">
         <div class="priority-bar-label">
@@ -565,95 +595,10 @@ function renderHomeCharts() {
         <div class="priority-bar-track">
           <div class="priority-bar-fill low" style="width: ${lPct}%"></div>
         </div>
+        ${getDrilldownPopoverHtml('priority', 'low', '普通项目')}
       </div>
-    </div>
-    <div class="chart-drilldown" id="priority-chart-drilldown">
-      <div class="chart-drilldown-placeholder">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-        <span>悬停在上方分类上可穿透查看具体项目明细</span>
-      </div>
-      <div class="chart-drilldown-list" style="display: none;"></div>
     </div>`;
 
-  // ---- 绑定状态分布图悬停事件 ----
-  const statusDrilldown = document.getElementById('status-chart-drilldown');
-  const statusPlaceholder = statusDrilldown.querySelector('.chart-drilldown-placeholder');
-  const statusList = statusDrilldown.querySelector('.chart-drilldown-list');
-  let statusTimer = null;
-
-  document.querySelectorAll('#status-chart-legend .legend-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-      if (statusTimer) clearTimeout(statusTimer);
-      const statusKey = item.dataset.status;
-      const matched = projects.filter(p => p.status === statusKey);
-      
-      statusPlaceholder.style.display = 'none';
-      statusList.style.display = 'flex';
-      
-      if (matched.length === 0) {
-        statusList.innerHTML = `<div class="chart-drilldown-placeholder" style="animation:none; font-size:0.72rem;">暂无该状态下的项目</div>`;
-      } else {
-        statusList.innerHTML = matched.map(p => {
-          const progress = getProjectProgress(p);
-          return `
-            <div class="chart-drilldown-item">
-              <span class="drilldown-title" title="${esc(p.title)}">${esc(p.title)}</span>
-              <div class="drilldown-meta">
-                <span class="drilldown-owner">👤 ${esc(p.assignee || '未分配')}</span>
-                <span class="drilldown-pct">${progress}%</span>
-              </div>
-            </div>`;
-        }).join('');
-      }
-    });
-
-    item.addEventListener('mouseleave', () => {
-      statusTimer = setTimeout(() => {
-        statusPlaceholder.style.display = 'flex';
-        statusList.style.display = 'none';
-      }, 350);
-    });
-  });
-
-  // ---- 绑定优先级分布图悬停事件 ----
-  const priorityDrilldown = document.getElementById('priority-chart-drilldown');
-  const priorityPlaceholder = priorityDrilldown.querySelector('.chart-drilldown-placeholder');
-  const priorityList = priorityDrilldown.querySelector('.chart-drilldown-list');
-  let priorityTimer = null;
-
-  document.querySelectorAll('#priority-chart-wrapper .priority-bar-row').forEach(row => {
-    row.addEventListener('mouseenter', () => {
-      if (priorityTimer) clearTimeout(priorityTimer);
-      const priKey = row.dataset.priority;
-      const matched = projects.filter(p => p.priority === priKey);
-      
-      priorityPlaceholder.style.display = 'none';
-      priorityList.style.display = 'flex';
-      
-      if (matched.length === 0) {
-        priorityList.innerHTML = `<div class="chart-drilldown-placeholder" style="animation:none; font-size:0.72rem;">暂无该优先级下的项目</div>`;
-      } else {
-        priorityList.innerHTML = matched.map(p => {
-          const progress = getProjectProgress(p);
-          return `
-            <div class="chart-drilldown-item">
-              <span class="drilldown-title" title="${esc(p.title)}">${esc(p.title)}</span>
-              <div class="drilldown-meta">
-                <span class="drilldown-owner">👤 ${esc(p.assignee || '未分配')}</span>
-                <span class="drilldown-pct">${progress}%</span>
-              </div>
-            </div>`;
-        }).join('');
-      }
-    });
-
-    row.addEventListener('mouseleave', () => {
-      priorityTimer = setTimeout(() => {
-        priorityPlaceholder.style.display = 'flex';
-        priorityList.style.display = 'none';
-      }, 350);
-    });
-  });
 }
 
 
