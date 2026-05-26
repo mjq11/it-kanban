@@ -1274,6 +1274,7 @@ function renderSubtasks(proj) {
       inputWrap.innerHTML = `
         <div class="pn-st-inline-input" style="width: 100%;">
           <input type="text" placeholder="输入下级子任务，回车添加..." autofocus style="font-size: 0.74rem;" />
+          <button class="pn-st-inline-save" title="保存"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></button>
           <button class="pn-st-inline-cancel" title="取消"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
       `;
@@ -1282,9 +1283,14 @@ function renderSubtasks(proj) {
       const input = inputWrap.querySelector('input');
       input.focus();
       
+      let isCancelling = false;
+      let hasSubmitted = false;
+
       const doAdd = () => {
+        if (hasSubmitted) return;
         const text = input.value.trim();
         if (text) {
+          hasSubmitted = true;
           const s = proj.subtasks.find(x => x.id === sid);
           if (s) {
             if (!s.subtasks) s.subtasks = [];
@@ -1308,16 +1314,32 @@ function renderSubtasks(proj) {
       
       input.addEventListener('keydown', ev => {
         if (ev.key === 'Enter') { ev.preventDefault(); doAdd(); }
-        if (ev.key === 'Escape') { renderSubtasks(proj); }
+        if (ev.key === 'Escape') { isCancelling = true; renderSubtasks(proj); }
       });
       input.addEventListener('blur', () => {
         setTimeout(() => {
-          if (document.activeElement !== input) renderSubtasks(proj);
-        }, 150);
+          if (isCancelling) {
+            renderSubtasks(proj);
+          } else {
+            doAdd();
+          }
+        }, 180);
       });
-      inputWrap.querySelector('.pn-st-inline-cancel').addEventListener('click', ev => {
+      
+      const cancelBtn = inputWrap.querySelector('.pn-st-inline-cancel');
+      const saveBtn = inputWrap.querySelector('.pn-st-inline-save');
+      
+      cancelBtn.addEventListener('mousedown', () => {
+        isCancelling = true;
+      });
+      cancelBtn.addEventListener('click', ev => {
         ev.stopPropagation();
         renderSubtasks(proj);
+      });
+      
+      saveBtn.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        doAdd();
       });
     });
   });
@@ -1335,14 +1357,23 @@ function renderSubtasks(proj) {
       btn.style.display = 'none';
       const inputWrap = document.createElement('div');
       inputWrap.className = 'pn-st-inline-input';
-      inputWrap.innerHTML = `<input type="text" placeholder="输入子任务内容，回车添加..." autofocus /><button class="pn-st-inline-cancel" title="取消"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+      inputWrap.innerHTML = `
+        <input type="text" placeholder="输入子任务内容，回车添加..." autofocus />
+        <button class="pn-st-inline-save" title="保存"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></button>
+        <button class="pn-st-inline-cancel" title="取消"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      `;
       line.appendChild(inputWrap);
       const input = inputWrap.querySelector('input');
       input.focus();
 
+      let isCancelling = false;
+      let hasSubmitted = false;
+
       const doInsert = () => {
+        if (hasSubmitted) return;
         const text = input.value.trim();
         if (text) {
+          hasSubmitted = true;
           insertSubtaskAt(proj, insertIdx, text);
         } else {
           renderSubtasks(proj);
@@ -1350,10 +1381,33 @@ function renderSubtasks(proj) {
       };
       input.addEventListener('keydown', ev => {
         if (ev.key === 'Enter') { ev.preventDefault(); doInsert(); }
-        if (ev.key === 'Escape') { renderSubtasks(proj); }
+        if (ev.key === 'Escape') { isCancelling = true; renderSubtasks(proj); }
       });
-      input.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== input) renderSubtasks(proj); }, 150); });
-      inputWrap.querySelector('.pn-st-inline-cancel').addEventListener('click', ev => { ev.stopPropagation(); renderSubtasks(proj); });
+      input.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (isCancelling) {
+            renderSubtasks(proj);
+          } else {
+            doInsert();
+          }
+        }, 180);
+      });
+      
+      const cancelBtn = inputWrap.querySelector('.pn-st-inline-cancel');
+      const saveBtn = inputWrap.querySelector('.pn-st-inline-save');
+      
+      cancelBtn.addEventListener('mousedown', () => {
+        isCancelling = true;
+      });
+      cancelBtn.addEventListener('click', ev => {
+        ev.stopPropagation();
+        renderSubtasks(proj);
+      });
+      
+      saveBtn.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        doInsert();
+      });
     });
   });
 

@@ -489,6 +489,8 @@ body{
 .pn-st-inline-input input::placeholder{color:var(--text-muted)}
 .pn-st-inline-cancel{width:20px;height:20px;border:none;background:var(--bg-muted);color:var(--text-muted);cursor:pointer;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--dur)}
 .pn-st-inline-cancel:hover{background:var(--red-soft);color:var(--red)}
+.pn-st-inline-save{width:20px;height:20px;border:none;background:var(--bg-muted);color:var(--text-muted);cursor:pointer;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--dur)}
+.pn-st-inline-save:hover{background:var(--green-soft);color:var(--green)}
 
 .pn-st-add{margin-top:5px}
 .pn-st-add input{width:100%;padding:7px 10px;border:1px dashed var(--border);border-radius:var(--r-md);background:transparent;color:var(--text);font-size:.82rem;font-family:inherit;outline:none;transition:all var(--dur)}
