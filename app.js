@@ -1039,102 +1039,301 @@ function renderMetaGrid(proj) {
 // 子任务拖拽排序状态
 let stDragSrcIdx = null;
 
+let stDragSrcIdx = null;
+
 function renderSubtasks(proj) {
-  const st = proj.subtasks||[];
-  const total = st.length, done = st.filter(s=>s.done).length;
-  const pct = total>0 ? Math.round((done/total)*100) : 0;
+  const st = proj.subtasks || [];
+  
+  // 递归获取所有最底层的叶子节点
+  const getLeafTasks = (list) => {
+    let leaves = [];
+    list.forEach(s => {
+      if (s.subtasks && s.subtasks.length > 0) {
+        leaves = leaves.concat(getLeafTasks(s.subtasks));
+      } else {
+        leaves.push(s);
+      }
+    });
+    return leaves;
+  };
+  
+  const leaves = getLeafTasks(st);
+  const total = leaves.length;
+  const done = leaves.filter(s => s.done).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  
   document.getElementById('pn-st-count').textContent = total;
 
   document.getElementById('pn-st-progress').innerHTML = `
-    <div class="pn-st-progress-top"><span class="pn-st-progress-text">${done} / ${total} 已完成</span><span class="pn-st-progress-pct">${pct}%</span></div>
-    <div class="pn-st-bar"><div class="pn-st-bar-fill ${pct===100?'complete':''}" style="width:${pct}%"></div></div>`;
+    <div class="pn-st-progress-top">
+      <span class="pn-st-progress-text">${done} / ${total} 已完成</span>
+      <span class="pn-st-progress-pct">${pct}%</span>
+    </div>
+    <div class="pn-st-bar">
+      <div class="pn-st-bar-fill ${pct === 100 ? 'complete' : ''}" style="width:${pct}%"></div>
+    </div>`;
 
   const list = document.getElementById('pn-st-list');
-  if(st.length===0) {
+  if (st.length === 0) {
     list.innerHTML = '<div class="pn-empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>还没有子任务</span><span style="font-size:.78rem">在下方输入后按回车添加</span></div>';
     return;
   }
 
-  // 构建子任务列表HTML，每项包含：拖拽手柄、勾选框、文字、排序按钮、编辑/删除按钮，以及项间的"插入"按钮
   let html = '';
   st.forEach((s, idx) => {
-    // 在每个子任务之间插入"添加"分隔线（第一个前面也加一个）
+    // 在每个一级子任务之间插入“添加”分隔线
     html += `<div class="pn-st-insert-line" data-insert-idx="${idx}">
-      <button class="pn-st-insert-btn" data-insert-idx="${idx}" title="在此处插入子任务">
+      <button class="pn-st-insert-btn" data-insert-idx="${idx}" title="在此处插入一级子任务">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>`;
 
-    html += `<div class="pn-st-item" draggable="true" data-sid="${s.id}" data-idx="${idx}">
+    // 渲染一级子任务
+    const hasChildren = s.subtasks && s.subtasks.length > 0;
+    if (hasChildren) {
+      s.done = s.subtasks.every(ss => ss.done);
+    }
+    
+    html += `
+    <div class="pn-st-item" draggable="true" data-sid="${s.id}" data-idx="${idx}">
       <div class="pn-st-grip" title="拖拽排序">
         <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="2" r="1.2"/><circle cx="7" cy="2" r="1.2"/><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="3" cy="12" r="1.2"/><circle cx="7" cy="12" r="1.2"/></svg>
       </div>
-      <div class="pn-st-cb ${s.done?'checked':''}" data-sid="${s.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
-      <span class="pn-st-text ${s.done?'done':''}">${esc(s.text)}</span>
+      <div class="pn-st-cb ${s.done ? 'checked' : ''}" data-sid="${s.id}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <span class="pn-st-text ${s.done ? 'done' : ''}">${esc(s.text)}</span>
       <div class="pn-st-actions">
-        <button class="pn-st-action-btn st-up-btn" data-idx="${idx}" title="上移" ${idx===0?'disabled':''}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg></button>
-        <button class="pn-st-action-btn st-down-btn" data-idx="${idx}" title="下移" ${idx===st.length-1?'disabled':''}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="pn-st-action-btn st-edit-btn" data-sid="${s.id}" title="编辑"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="pn-st-action-btn del st-del-btn" data-sid="${s.id}" title="删除"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <button class="pn-st-action-btn st-add-sub-btn" data-sid="${s.id}" title="添加下级任务">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="pn-st-action-btn st-up-btn" data-idx="${idx}" title="上移" ${idx === 0 ? 'disabled' : ''}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="pn-st-action-btn st-down-btn" data-idx="${idx}" title="下移" ${idx === st.length - 1 ? 'disabled' : ''}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="pn-st-action-btn st-edit-btn" data-sid="${s.id}" title="编辑">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="pn-st-action-btn del st-del-btn" data-sid="${s.id}" title="删除">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
     </div>`;
+
+    if (hasChildren) {
+      html += `<div class="pn-st-sublist" data-parent-sid="${s.id}">`;
+      s.subtasks.forEach((ss, subIdx) => {
+        html += `
+        <div class="pn-st-item level-2" draggable="false" data-sid="${ss.id}" data-parent-sid="${s.id}" data-idx="${subIdx}">
+          <div class="pn-st-cb-sub ${ss.done ? 'checked' : ''}" data-parent-sid="${s.id}" data-sid="${ss.id}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <span class="pn-st-text level-2 ${ss.done ? 'done' : ''}">${esc(ss.text)}</span>
+          <div class="pn-st-actions">
+            <button class="pn-st-action-btn st-sub-up-btn" data-parent-sid="${s.id}" data-idx="${subIdx}" title="上移" ${subIdx === 0 ? 'disabled' : ''}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+            </button>
+            <button class="pn-st-action-btn st-sub-down-btn" data-parent-sid="${s.id}" data-idx="${subIdx}" title="下移" ${subIdx === s.subtasks.length - 1 ? 'disabled' : ''}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <button class="pn-st-action-btn st-sub-edit-btn" data-parent-sid="${s.id}" data-sid="${ss.id}" title="编辑">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="pn-st-action-btn del st-sub-del-btn" data-parent-sid="${s.id}" data-sid="${ss.id}" title="删除">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
   });
-  // 最后一项之后也加插入线
+
   html += `<div class="pn-st-insert-line" data-insert-idx="${st.length}">
-    <button class="pn-st-insert-btn" data-insert-idx="${st.length}" title="在此处插入子任务">
+    <button class="pn-st-insert-btn" data-insert-idx="${st.length}" title="在此处插入一级子任务">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
     </button>
   </div>`;
 
   list.innerHTML = html;
 
-  // ---- 绑定事件 ----
-
-  // 勾选
+  // 1. 一级子任务勾选
   list.querySelectorAll('.pn-st-cb').forEach(cb => {
     cb.addEventListener('click', () => {
       const sid = parseInt(cb.dataset.sid);
-      const s = proj.subtasks.find(x=>x.id===sid);
-      if(s){ s.done=!s.done; if(s.done) addActivity(proj,'subtask',`完成: ${s.text}`); refreshAfterSubtaskChange(proj); }
+      const s = proj.subtasks.find(x => x.id === sid);
+      if (s) {
+        s.done = !s.done;
+        if (s.subtasks && s.subtasks.length > 0) {
+          s.subtasks.forEach(ss => ss.done = s.done);
+        }
+        if (s.done) addActivity(proj, 'subtask', `完成: ${s.text}`);
+        refreshAfterSubtaskChange(proj);
+      }
     });
   });
 
-  // 编辑
-  list.querySelectorAll('.st-edit-btn').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); openStEditModal(proj, parseInt(btn.dataset.sid)); });
+  // 2. 二级子任务勾选
+  list.querySelectorAll('.pn-st-cb-sub').forEach(cb => {
+    cb.addEventListener('click', () => {
+      const parentSid = parseInt(cb.dataset.parentSid);
+      const sid = parseInt(cb.dataset.sid);
+      const parent = proj.subtasks.find(x => x.id === parentSid);
+      if (parent && parent.subtasks) {
+        const ss = parent.subtasks.find(x => x.id === sid);
+        if (ss) {
+          ss.done = !ss.done;
+          parent.done = parent.subtasks.every(x => x.done);
+          if (ss.done) addActivity(proj, 'subtask', `完成下级任务: ${ss.text}`);
+          refreshAfterSubtaskChange(proj);
+        }
+      }
+    });
   });
 
-  // 删除
+  // 3. 一级子任务编辑
+  list.querySelectorAll('.st-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openStEditModal(proj, parseInt(btn.dataset.sid), null); });
+  });
+
+  // 4. 二级子任务编辑
+  list.querySelectorAll('.st-sub-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openStEditModal(proj, parseInt(btn.dataset.sid), parseInt(btn.dataset.parentSid)); });
+  });
+
+  // 5. 一级子任务删除
   list.querySelectorAll('.st-del-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      proj.subtasks = proj.subtasks.filter(s=>s.id!==parseInt(btn.dataset.sid));
+      proj.subtasks = proj.subtasks.filter(s => s.id !== parseInt(btn.dataset.sid));
       refreshAfterSubtaskChange(proj);
     });
   });
 
-  // 上移
+  // 6. 二级子任务删除
+  list.querySelectorAll('.st-sub-del-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const parentSid = parseInt(btn.dataset.parentSid);
+      const sid = parseInt(btn.dataset.sid);
+      const parent = proj.subtasks.find(x => x.id === parentSid);
+      if (parent && parent.subtasks) {
+        parent.subtasks = parent.subtasks.filter(ss => ss.id !== sid);
+        if (parent.subtasks.length > 0) {
+          parent.done = parent.subtasks.every(x => x.done);
+        }
+        refreshAfterSubtaskChange(proj);
+      }
+    });
+  });
+
+  // 7. 一级子任务上移
   list.querySelectorAll('.st-up-btn').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); moveSubtask(proj, parseInt(btn.dataset.idx), -1); });
   });
 
-  // 下移
+  // 8. 一级子任务下移
   list.querySelectorAll('.st-down-btn').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); moveSubtask(proj, parseInt(btn.dataset.idx), 1); });
   });
 
-  // 插入按钮 - 点击后在该位置出现一个输入框
+  // 9. 二级子任务上移
+  list.querySelectorAll('.st-sub-up-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      moveSubSubtask(proj, parseInt(btn.dataset.parentSid), parseInt(btn.dataset.idx), -1);
+    });
+  });
+
+  // 10. 二级子任务下移
+  list.querySelectorAll('.st-sub-down-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      moveSubSubtask(proj, parseInt(btn.dataset.parentSid), parseInt(btn.dataset.idx), 1);
+    });
+  });
+
+  // 11. 添加下级子任务
+  list.querySelectorAll('.st-add-sub-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const sid = parseInt(btn.dataset.sid);
+      const itemEl = btn.closest('.pn-st-item');
+      
+      let nextEl = itemEl.nextElementSibling;
+      if (nextEl && nextEl.classList.contains('pn-st-sub-input-wrap')) {
+        nextEl.querySelector('input').focus();
+        return;
+      }
+      
+      const inputWrap = document.createElement('div');
+      inputWrap.className = 'pn-st-sub-input-wrap level-2';
+      inputWrap.style.marginLeft = '28px';
+      inputWrap.style.marginTop = '4px';
+      inputWrap.style.marginBottom = '4px';
+      inputWrap.innerHTML = `
+        <div class="pn-st-inline-input" style="width: 100%;">
+          <input type="text" placeholder="输入下级子任务，回车添加..." autofocus style="font-size: 0.74rem;" />
+          <button class="pn-st-inline-cancel" title="取消"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+      `;
+      
+      itemEl.parentNode.insertBefore(inputWrap, itemEl.nextSibling);
+      const input = inputWrap.querySelector('input');
+      input.focus();
+      
+      const doAdd = () => {
+        const text = input.value.trim();
+        if (text) {
+          const s = proj.subtasks.find(x => x.id === sid);
+          if (s) {
+            if (!s.subtasks) s.subtasks = [];
+            const allIds = [];
+            proj.subtasks.forEach(x => {
+              allIds.push(x.id);
+              if (x.subtasks) x.subtasks.forEach(y => allIds.push(y.id));
+            });
+            const nid = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
+            
+            s.subtasks.push({ id: nid, text, done: false });
+            s.done = false;
+            
+            addActivity(proj, 'subtask', `添加下级任务: ${text}`);
+            refreshAfterSubtaskChange(proj);
+          }
+        } else {
+          renderSubtasks(proj);
+        }
+      };
+      
+      input.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') { ev.preventDefault(); doAdd(); }
+        if (ev.key === 'Escape') { renderSubtasks(proj); }
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.activeElement !== input) renderSubtasks(proj);
+        }, 150);
+      });
+      inputWrap.querySelector('.pn-st-inline-cancel').addEventListener('click', ev => {
+        ev.stopPropagation();
+        renderSubtasks(proj);
+      });
+    });
+  });
+
+  // 12. 一级子任务插入线
   list.querySelectorAll('.pn-st-insert-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const insertIdx = parseInt(btn.dataset.insertIdx);
       const line = btn.closest('.pn-st-insert-line');
-      // 如果已经有输入框，直接聚焦
-      if(line.querySelector('.pn-st-inline-input')) {
+      if (line.querySelector('.pn-st-inline-input')) {
         line.querySelector('.pn-st-inline-input input').focus();
         return;
       }
-      // 隐藏按钮，显示内联输入框
       btn.style.display = 'none';
       const inputWrap = document.createElement('div');
       inputWrap.className = 'pn-st-inline-input';
@@ -1145,29 +1344,26 @@ function renderSubtasks(proj) {
 
       const doInsert = () => {
         const text = input.value.trim();
-        if(text) {
+        if (text) {
           insertSubtaskAt(proj, insertIdx, text);
         } else {
-          // 取消，恢复按钮
           renderSubtasks(proj);
         }
       };
       input.addEventListener('keydown', ev => {
-        if(ev.key === 'Enter') { ev.preventDefault(); doInsert(); }
-        if(ev.key === 'Escape') { renderSubtasks(proj); }
+        if (ev.key === 'Enter') { ev.preventDefault(); doInsert(); }
+        if (ev.key === 'Escape') { renderSubtasks(proj); }
       });
-      input.addEventListener('blur', () => { setTimeout(() => { if(document.activeElement !== input) renderSubtasks(proj); }, 150); });
+      input.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== input) renderSubtasks(proj); }, 150); });
       inputWrap.querySelector('.pn-st-inline-cancel').addEventListener('click', ev => { ev.stopPropagation(); renderSubtasks(proj); });
     });
   });
 
-  // ---- 拖拽排序 ----
-  list.querySelectorAll('.pn-st-item').forEach(item => {
-    // 只允许从拖拽手柄开始拖拽
+  // 13. ---- 拖拽排序 ----
+  list.querySelectorAll('.pn-st-item:not(.level-2)').forEach(item => {
     const grip = item.querySelector('.pn-st-grip');
     item.addEventListener('dragstart', e => {
-      // 检查是否从 grip 开始
-      if(!grip.contains(document.elementFromPoint(e.clientX, e.clientY))) {
+      if (!grip.contains(document.elementFromPoint(e.clientX, e.clientY))) {
         e.preventDefault();
         return;
       }
@@ -1178,7 +1374,7 @@ function renderSubtasks(proj) {
     });
     item.addEventListener('dragend', () => {
       item.classList.remove('st-dragging');
-      list.querySelectorAll('.pn-st-item').forEach(i => i.classList.remove('st-drag-over-top','st-drag-over-bottom'));
+      list.querySelectorAll('.pn-st-item').forEach(i => i.classList.remove('st-drag-over-top', 'st-drag-over-bottom'));
       stDragSrcIdx = null;
     });
     item.addEventListener('dragover', e => {
@@ -1186,89 +1382,117 @@ function renderSubtasks(proj) {
       e.dataTransfer.dropEffect = 'move';
       const rect = item.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
-      item.classList.remove('st-drag-over-top','st-drag-over-bottom');
-      if(e.clientY < midY) {
+      item.classList.remove('st-drag-over-top', 'st-drag-over-bottom');
+      if (e.clientY < midY) {
         item.classList.add('st-drag-over-top');
       } else {
         item.classList.add('st-drag-over-bottom');
       }
     });
     item.addEventListener('dragleave', () => {
-      item.classList.remove('st-drag-over-top','st-drag-over-bottom');
+      item.classList.remove('st-drag-over-top', 'st-drag-over-bottom');
     });
     item.addEventListener('drop', e => {
       e.preventDefault();
-      item.classList.remove('st-drag-over-top','st-drag-over-bottom');
+      item.classList.remove('st-drag-over-top', 'st-drag-over-bottom');
       const fromIdx = stDragSrcIdx;
       let toIdx = parseInt(item.dataset.idx);
-      if(fromIdx === null || fromIdx === toIdx) return;
+      if (fromIdx === null || fromIdx === toIdx) return;
 
       const rect = item.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       const dropAfter = e.clientY >= midY;
 
-      // 执行排序
       const moved = proj.subtasks.splice(fromIdx, 1)[0];
-      // 重新计算目标索引（因为 splice 改变了数组）
-      if(fromIdx < toIdx) toIdx--;
-      if(dropAfter) toIdx++;
+      if (fromIdx < toIdx) toIdx--;
+      if (dropAfter) toIdx++;
       proj.subtasks.splice(toIdx, 0, moved);
       refreshAfterSubtaskChange(proj);
     });
   });
 }
 
-// 上下移动子任务
 function moveSubtask(proj, idx, direction) {
   const newIdx = idx + direction;
-  if(newIdx < 0 || newIdx >= proj.subtasks.length) return;
+  if (newIdx < 0 || newIdx >= proj.subtasks.length) return;
   const arr = proj.subtasks;
   [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
   refreshAfterSubtaskChange(proj);
 }
 
-// 在指定位置插入子任务
+function moveSubSubtask(proj, parentSid, idx, direction) {
+  const parent = proj.subtasks.find(x => x.id === parentSid);
+  if (parent && parent.subtasks) {
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= parent.subtasks.length) return;
+    const arr = parent.subtasks;
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    refreshAfterSubtaskChange(proj);
+  }
+}
+
 function insertSubtaskAt(proj, idx, text) {
-  const nid = proj.subtasks.length > 0 ? Math.max(...proj.subtasks.map(s=>s.id)) + 1 : 1;
+  const allIds = [];
+  proj.subtasks.forEach(x => {
+    allIds.push(x.id);
+    if (x.subtasks) x.subtasks.forEach(y => allIds.push(y.id));
+  });
+  const nid = allIds.length > 0 ? Math.max(...allIds) + 1 : 1;
   proj.subtasks.splice(idx, 0, { id: nid, text, done: false });
   addActivity(proj, 'subtask', `添加子任务: ${text}`);
   refreshAfterSubtaskChange(proj);
 }
 
-// 子任务变更后统一刷新
 function refreshAfterSubtaskChange(proj) {
   saveState();
   renderSubtasks(proj);
   renderProgressBlock(proj);
-  if(currentBoardId) renderKanban();
+  if (currentBoardId) renderKanban();
   renderHomeStats();
 }
 
-// 子任务编辑模态框
-function openStEditModal(proj, sid) {
-  const s = proj.subtasks.find(x=>x.id===sid);
-  if(!s) return;
-  editingSubtaskId = { projId: proj.id, sid };
+function openStEditModal(proj, sid, parentSid = null) {
+  let s = null;
+  if (parentSid) {
+    const parent = proj.subtasks.find(x => x.id === parentSid);
+    if (parent && parent.subtasks) {
+      s = parent.subtasks.find(x => x.id === sid);
+    }
+  } else {
+    s = proj.subtasks.find(x => x.id === sid);
+  }
+  if (!s) return;
+  editingSubtaskId = { projId: proj.id, sid, parentSid };
   document.getElementById('st-edit-text').value = s.text;
   document.getElementById('st-edit-overlay').classList.add('active');
   setTimeout(() => document.getElementById('st-edit-text').focus(), 200);
 }
+
 function closeStEditModal() {
   document.getElementById('st-edit-overlay').classList.remove('active');
   editingSubtaskId = null;
 }
+
 function saveStEdit() {
-  if(!editingSubtaskId) return;
+  if (!editingSubtaskId) return;
   const proj = findProject(editingSubtaskId.projId);
-  if(!proj) return;
-  const s = proj.subtasks.find(x=>x.id===editingSubtaskId.sid);
-  if(!s) return;
+  if (!proj) return;
+  let s = null;
+  if (editingSubtaskId.parentSid) {
+    const parent = proj.subtasks.find(x => x.id === editingSubtaskId.parentSid);
+    if (parent && parent.subtasks) {
+      s = parent.subtasks.find(x => x.id === editingSubtaskId.sid);
+    }
+  } else {
+    s = proj.subtasks.find(x => x.id === editingSubtaskId.sid);
+  }
+  if (!s) return;
   const newText = document.getElementById('st-edit-text').value.trim();
-  if(!newText) return;
+  if (!newText) return;
   s.text = newText;
   saveState();
   renderSubtasks(proj);
-  if(currentBoardId) renderKanban();
+  if (currentBoardId) renderKanban();
   closeStEditModal();
   toast('子任务已更新');
 }
@@ -1623,8 +1847,22 @@ function closeConfirm() { document.getElementById('confirm-overlay').classList.r
 function getProjectProgress(proj) {
   const st = proj.subtasks || [];
   if (st.length > 0) {
-    const done = st.filter(s => s.done).length;
-    return Math.round((done / st.length) * 100);
+    const getLeafTasks = (list) => {
+      let leaves = [];
+      list.forEach(s => {
+        if (s.subtasks && s.subtasks.length > 0) {
+          leaves = leaves.concat(getLeafTasks(s.subtasks));
+        } else {
+          leaves.push(s);
+        }
+      });
+      return leaves;
+    };
+    const leaves = getLeafTasks(st);
+    if (leaves.length > 0) {
+      const done = leaves.filter(s => s.done).length;
+      return Math.round((done / leaves.length) * 100);
+    }
   }
   return proj.manualProgress || 0;
 }
