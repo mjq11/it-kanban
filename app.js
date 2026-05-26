@@ -1039,8 +1039,6 @@ function renderMetaGrid(proj) {
 // 子任务拖拽排序状态
 let stDragSrcIdx = null;
 
-let stDragSrcIdx = null;
-
 function renderSubtasks(proj) {
   const st = proj.subtasks || [];
   
